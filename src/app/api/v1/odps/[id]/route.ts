@@ -18,6 +18,7 @@ export async function PATCH(
       ...(typeof body.area === "string" ? { area: body.area } : {}),
       ...(typeof body.lat === "string" ? { lat: body.lat } : {}),
       ...(typeof body.lng === "string" ? { lng: body.lng } : {}),
+      ...(typeof body.owner === "string" ? { owner: body.owner.trim() || "admin" } : {}),
       ...(body.capacity !== undefined ? { capacity: Number(body.capacity) || 0 } : {}),
       ...(typeof body.note === "string" ? { note: body.note } : {}),
     },

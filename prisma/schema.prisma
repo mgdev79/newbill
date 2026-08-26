@@ -300,6 +300,7 @@ model Odp {
   id       String @id @default(cuid())
   name     String @unique
   area     String @default("")
+  owner    String @default("admin")
   lat      String @default("")
   lng      String @default("")
   capacity Int    @default(16)

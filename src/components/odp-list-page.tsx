@@ -8,6 +8,7 @@ type Row = {
   id: string;
   name: string;
   area: string;
+  owner: string;
   lat: string;
   lng: string;
   capacity: number;
@@ -15,7 +16,7 @@ type Row = {
   note: string;
 };
 
-const empty = { name: "", area: "", lat: "", lng: "", capacity: "16", note: "" };
+const empty = { name: "", area: "", owner: "admin", lat: "", lng: "", capacity: "16", note: "" };
 
 export function OdpListPage() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -39,6 +40,7 @@ export function OdpListPage() {
     const payload = {
       name: form.name,
       area: form.area,
+      owner: form.owner,
       lat: form.lat,
       lng: form.lng,
       capacity: Number(form.capacity) || 0,
@@ -85,6 +87,9 @@ export function OdpListPage() {
           <Field label="Area">
             <input className={inputClass} value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
           </Field>
+          <Field label="Owner">
+            <input className={inputClass} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          </Field>
           <Field label="Kapasitas">
             <input className={inputClass} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
           </Field>
@@ -117,10 +122,11 @@ export function OdpListPage() {
       </Panel>
       <Panel className="mt-4" title="Daftar">
         <DataTable
-          headers={["Nama", "Area", "Kapasitas", "Terpakai", "Sisa", ""]}
+          headers={["Nama", "Area", "Owner", "Kapasitas", "Terpakai", "Sisa", ""]}
           rows={rows.map((row) => [
             row.name,
             row.area,
+            row.owner || "admin",
             String(row.capacity),
             String(row.used),
             String(row.capacity - row.used),
@@ -132,6 +138,7 @@ export function OdpListPage() {
                   setForm({
                     name: row.name,
                     area: row.area,
+                    owner: row.owner || "admin",
                     lat: row.lat,
                     lng: row.lng,
                     capacity: String(row.capacity),

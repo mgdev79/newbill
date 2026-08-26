@@ -71,11 +71,11 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "ODP | POP",
+    label: "Data ODP | POP",
     icon: MapPin,
     items: [
-      { href: "/odp", label: "Kelola" },
-      { href: "/odp/map", label: "Peta" },
+      { href: "/odp", label: "Kelola ODP | POP" },
+      { href: "/odp/map", label: "Lihat Peta" },
     ],
   },
   {
@@ -177,5 +177,6 @@ export function pathMatches(pathname: string, href: string) {
   if (href === "/nas") {
     return pathname.startsWith("/nas/") && !pathname.startsWith("/nas/add");
   }
+  if (href === "/odp") return pathname === "/odp";
   return pathname.startsWith(`${href}/`);
 }

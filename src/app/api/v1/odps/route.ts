@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     lng?: string;
     capacity?: number;
     note?: string;
+    owner?: string;
   };
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "Nama ODP wajib." }, { status: 400 });
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
         lng: body.lng?.trim() ?? "",
         capacity: Number(body.capacity) || 16,
         note: body.note?.trim() ?? "",
+        owner: body.owner?.trim() || "admin",
       },
     });
     return NextResponse.json({ row: { ...row, used: 0 } }, { status: 201 });

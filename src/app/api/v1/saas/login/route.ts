@@ -9,8 +9,6 @@ import {
 
 export const runtime = "nodejs";
 
-export { SAAS_COOKIE };
-
 const SAAS_USER = process.env.SAAS_ADMIN_USER ?? "saas";
 const SAAS_PASS = process.env.SAAS_ADMIN_PASSWORD ?? "saas123";
 

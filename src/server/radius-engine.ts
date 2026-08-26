@@ -1,5 +1,4 @@
 import mysql from "mysql2/promise";
-import { Client } from "ssh2";
 import type { RadiusEngine } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
@@ -189,7 +188,7 @@ export async function testMysqlConnection(input: {
   }
 }
 
-export function sshRunCommand(
+export async function sshRunCommand(
   input: {
     sshHost: string;
     sshPort: number;
@@ -199,6 +198,7 @@ export function sshRunCommand(
   command: string,
   timeoutMs = 20_000,
 ): Promise<{ stdout: string; stderr: string }> {
+  const { Client } = await import("ssh2");
   return new Promise((resolve, reject) => {
     const client = new Client();
     let settled = false;

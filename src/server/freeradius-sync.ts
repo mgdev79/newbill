@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { Nas } from "@prisma/client";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { acctPortFor, nextAuthPort, RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
+import { acctPortFor, nextAuthPort } from "@/lib/nas-ports";
 import {
   customerRadiusPolicy,
   replyEntries,
@@ -11,6 +11,7 @@ import {
   type VoucherPolicyInput,
 } from "@/server/radius-policy";
 import { frExecute, frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
+import { getActiveRadiusEngine, getRadiusCoaPort, sshRunCommand } from "@/server/radius-engine";
 import { disconnectUser } from "@/server/radius-coa";
 
 const execFileAsync = promisify(execFile);
@@ -36,12 +37,12 @@ type NasMysqlRow = RowDataPacket & {
 };
 
 function logSkip(action: string) {
-  console.warn(`[freeradius] skip ${action}: FREERADIUS_DB_URL tidak ada`);
+  console.warn(`[freeradius] skip ${action}: Radius Engine belum dikonfigurasi`);
 }
 
 export async function removeRadiusUsername(username: string) {
   if (!username) return;
-  if (!isFreeradiusConfigured()) {
+  if (!(await isFreeradiusConfigured())) {
     logSkip(`remove ${username}`);
     return;
   }
@@ -68,7 +69,7 @@ async function writeRadiusUser(
 }
 
 export async function syncCustomerRadius(customer: CustomerPolicyInput) {
-  if (!isFreeradiusConfigured()) {
+  if (!(await isFreeradiusConfigured())) {
     logSkip(`customer ${customer.username}`);
     return { skipped: true as const };
   }
@@ -87,7 +88,7 @@ export async function syncCustomerRadius(customer: CustomerPolicyInput) {
 }
 
 export async function syncVoucherRadius(voucher: VoucherPolicyInput) {
-  if (!isFreeradiusConfigured()) {
+  if (!(await isFreeradiusConfigured())) {
     logSkip(`voucher ${voucher.code}`);
     return { skipped: true as const };
   }
@@ -121,13 +122,35 @@ async function findNasMysql(nas: Pick<Nas, "name" | "ip">) {
 }
 
 export async function provisionNasListener(mysqlId: number) {
+  const engine = await getActiveRadiusEngine();
+  if (!engine) {
+    throw new Error("Radius Engine belum dikonfigurasi.");
+  }
   const script =
-    process.env.FREERADIUS_PROVISION_SCRIPT?.trim() ||
-    "/opt/radius-provision/gen_nas_listener.sh";
-  const useSudo = process.env.FREERADIUS_PROVISION_SUDO !== "0";
+    engine.provisionScript.trim() || "/opt/radius-provision/gen_nas_listener.sh";
   const timeout = Number(process.env.FREERADIUS_PROVISION_TIMEOUT_MS ?? 60_000);
-  const file = useSudo ? "sudo" : script;
-  const args = useSudo ? [script, String(mysqlId)] : [String(mysqlId)];
+  const mysqlIdStr = String(mysqlId);
+
+  if (engine.provisionMethod === "ssh") {
+    if (!engine.sshHost.trim() || !engine.sshPrivateKey.trim()) {
+      throw new Error("Provision SSH: isi SSH host dan private key di Radius Engine.");
+    }
+    const command = engine.useSudo ? `sudo ${script} ${mysqlIdStr}` : `${script} ${mysqlIdStr}`;
+    await sshRunCommand(
+      {
+        sshHost: engine.sshHost,
+        sshPort: engine.sshPort || 22,
+        sshUser: engine.sshUser || "root",
+        sshPrivateKey: engine.sshPrivateKey,
+      },
+      command,
+      timeout,
+    );
+    return;
+  }
+
+  const file = engine.useSudo ? "sudo" : script;
+  const args = engine.useSudo ? [script, mysqlIdStr] : [mysqlIdStr];
   await execFileAsync(file, args, { timeout });
 }
 
@@ -135,7 +158,7 @@ export async function syncNasRadius(
   nas: Nas,
   previous?: Pick<Nas, "name" | "ip">,
 ): Promise<NasRadiusPorts | { skipped: true }> {
-  if (!isFreeradiusConfigured()) {
+  if (!(await isFreeradiusConfigured())) {
     logSkip(`nas ${nas.name}`);
     return { skipped: true };
   }
@@ -234,7 +257,7 @@ export async function syncNasRadius(
 }
 
 export async function removeNasRadius(nas: Pick<Nas, "name" | "ip">) {
-  if (!isFreeradiusConfigured()) {
+  if (!(await isFreeradiusConfigured())) {
     logSkip(`remove nas ${nas.name}`);
     return { skipped: true as const };
   }
@@ -259,7 +282,7 @@ export async function removeNasRadius(nas: Pick<Nas, "name" | "ip">) {
 }
 
 export async function listNasRadiusPorts() {
-  if (!isFreeradiusConfigured()) return [];
+  if (!(await isFreeradiusConfigured())) return [];
   const rows = await usedAuthPorts();
   return rows.map((row) => ({
     mysqlId: row.id,
@@ -271,8 +294,8 @@ export async function listNasRadiusPorts() {
   }));
 }
 
-export function incomingPort() {
-  return Number(process.env.RADIUS_INCOMING_PORT ?? RADIUS_INCOMING_PORT);
+export async function incomingPort() {
+  return getRadiusCoaPort();
 }
 
 export async function disconnectCustomerSessions(input: {

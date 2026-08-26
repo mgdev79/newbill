@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { engineFieldsFromEnv } from "../src/server/radius-engine";
 
 const prisma = new PrismaClient();
 const PASSWORD = "radius123";
@@ -394,6 +395,29 @@ async function main() {
       enabled: true,
     },
   });
+
+  const engineFields = engineFieldsFromEnv();
+  if (engineFields) {
+    await prisma.radiusEngine.upsert({
+      where: { name: "default" },
+      create: {
+        name: "default",
+        dbHost: engineFields.dbHost,
+        dbPort: engineFields.dbPort ?? 3306,
+        dbName: engineFields.dbName ?? "radius",
+        dbUser: engineFields.dbUser,
+        dbPassword: engineFields.dbPassword ?? "",
+        provisionMethod: "local",
+        provisionScript:
+          engineFields.provisionScript ?? "/opt/radius-provision/gen_nas_listener.sh",
+        useSudo: engineFields.useSudo ?? true,
+        coaPort: engineFields.coaPort ?? 3799,
+        publicIp: engineFields.publicIp ?? "",
+        active: true,
+      },
+      update: {},
+    });
+  }
 }
 
 main()

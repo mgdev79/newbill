@@ -102,7 +102,7 @@ export function SaasShell({ children }: { children: ReactNode }) {
             {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
           <p className="text-sm font-medium text-slate-800">Admin SaaS</p>
-          <span className="ml-auto text-xs text-slate-500">Kelola tenant · VPN · paket</span>
+          <span className="ml-auto text-xs text-slate-500">Kelola tenant · VPN · Radius · paket</span>
         </header>
         <main className="p-4 lg:p-6">{children}</main>
       </div>

@@ -378,3 +378,26 @@ model ActivityLog {
   message String
   kind    String
 }
+
+model RadiusEngine {
+  id              String    @id @default(cuid())
+  name            String    @unique @default("default")
+  dbHost          String
+  dbPort          Int       @default(3306)
+  dbName          String    @default("radius")
+  dbUser          String
+  dbPassword      String
+  provisionMethod String    @default("local")
+  sshHost         String    @default("")
+  sshPort         Int       @default(22)
+  sshUser         String    @default("root")
+  sshPrivateKey   String    @default("")
+  provisionScript String    @default("/opt/radius-provision/gen_nas_listener.sh")
+  useSudo         Boolean   @default(true)
+  coaPort         Int       @default(3799)
+  publicIp        String    @default("")
+  active          Boolean   @default(true)
+  lastTestOk      Boolean   @default(false)
+  lastTestAt      DateTime?
+  lastTestError   String    @default("")
+}

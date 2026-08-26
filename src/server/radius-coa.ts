@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { createSocket } from "node:dgram";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
-import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
+import { getRadiusCoaPort } from "@/server/radius-engine";
 import { ATTR, md5 } from "@/server/radius/codec";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
@@ -139,7 +139,7 @@ async function liveSessions(username: string) {
     sessionId: row.sessionId,
     nasIp: row.nasIp,
   }));
-  if (!isFreeradiusConfigured()) return sessions;
+  if (!(await isFreeradiusConfigured())) return sessions;
   try {
     const rows = await frQuery<FrAcctRow[]>(
       "SELECT acctsessionid, nasipaddress FROM radacct WHERE username = ? AND acctstoptime IS NULL",
@@ -162,7 +162,7 @@ export async function disconnectUser(input: {
   secret: string;
   sessionId?: string;
 }) {
-  const coaPort = Number(process.env.RADIUS_INCOMING_PORT ?? RADIUS_INCOMING_PORT);
+  const coaPort = await getRadiusCoaPort();
   const sessions = input.sessionId
     ? [{ sessionId: input.sessionId, nasIp: input.nasIp }]
     : await liveSessions(input.username);

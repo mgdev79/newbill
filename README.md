@@ -17,7 +17,7 @@ npx prisma db seed
 npm run dev
 ```
 
-Isi `FREERADIUS_DB_URL` di `.env` (lihat `.env.example`).
+Isi koneksi FreeRADIUS di **SaaS Admin → Radius Engine** (`/saas/radius-engine`). Env `FREERADIUS_DB_URL` hanya seed awal jika tabel masih kosong.
 
 - UI: http://localhost:3000
 - Isolir due: `GET/POST /api/v1/jobs/isolir` (juga scheduler 5 menit saat `next start`)

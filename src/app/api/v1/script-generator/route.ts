@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { extractIpv4, randomApiUser, randomSecret } from "@/lib/nas-script";
 import { publicVpnAccount } from "@/lib/saas";
-import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
 import { nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
+import { getRadiusPublicIp } from "@/server/radius-engine";
 
 export const runtime = "nodejs";
 
@@ -32,22 +32,22 @@ export async function GET() {
   }
   await putSetting("radiusSecret", radiusSecret);
 
-  const [vpn, nasRows, index] = await Promise.all([
+  const [vpn, nasRows, index, incoming, radiusAddress] = await Promise.all([
     prisma.vpnAccount.findMany({
       include: { server: true },
       orderBy: { label: "asc" },
     }),
     prisma.nas.findMany({ orderBy: { name: "asc" } }),
     nasPortsIndex(),
+    radiusIncomingPort(),
+    getRadiusPublicIp(),
   ]);
-
-  const incoming = radiusIncomingPort() || RADIUS_INCOMING_PORT;
 
   return NextResponse.json({
     apiUser,
     apiPassword,
     radiusSecret,
-    radiusAddress: process.env.RADIUS_PUBLIC_IP ?? "",
+    radiusAddress,
     radiusIncomingPort: incoming,
     nasListeners: nasRows.map((nas) => {
       const ports = index.byName.get(nas.name) ?? index.byIp.get(nas.ip);

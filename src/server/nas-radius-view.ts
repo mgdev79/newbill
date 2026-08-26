@@ -1,7 +1,7 @@
 import type { Nas } from "@prisma/client";
-import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
 import { toPublicNas, type NasPublic } from "@/lib/nas-dto";
-import { incomingPort, listNasRadiusPorts } from "@/server/freeradius-sync";
+import { listNasRadiusPorts } from "@/server/freeradius-sync";
+import { getRadiusCoaPort } from "@/server/radius-engine";
 
 export async function nasPortsIndex() {
   const rows = await listNasRadiusPorts().catch(() => []);
@@ -27,6 +27,6 @@ export function mergeNasPublic(
   });
 }
 
-export function radiusIncomingPort() {
-  return Number(process.env.RADIUS_INCOMING_PORT ?? incomingPort() ?? RADIUS_INCOMING_PORT);
+export async function radiusIncomingPort() {
+  return getRadiusCoaPort();
 }

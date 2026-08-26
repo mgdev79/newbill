@@ -51,7 +51,7 @@ export async function runIsolirDueJob() {
   }
 
   let vouchersMarkedUsed = 0;
-  if (isFreeradiusConfigured()) {
+  if (await isFreeradiusConfigured()) {
     const unused = await prisma.voucher.findMany({
       where: { used: false, enabled: true, expiresAt: { gt: now } },
       select: { id: true, code: true },

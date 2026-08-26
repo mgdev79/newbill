@@ -13,7 +13,8 @@ newbill/
   prisma/                       Schema SQLite + seed
   scripts/                      radius-server lama (jangan dijalankan)
   docs/
-  .env.example                  FREERADIUS_DB_URL
+  .env.example                  seed awal Radius Engine (opsional)
+  src/server/radius-engine.ts  konfigurasi FreeRADIUS di DB
 ```
 
 ```bash

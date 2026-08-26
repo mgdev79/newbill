@@ -167,6 +167,7 @@ export const saasNavGroups: NavGroup[] = [
   { label: "Tenant", icon: Building2, href: "/saas/tenants" },
   { label: "Info Lisensi", icon: CreditCard, href: "/saas/license" },
   { label: "VPN server", icon: Server, href: "/saas/vpn-servers" },
+  { label: "Radius Engine", icon: Radio, href: "/saas/radius-engine" },
   { label: "Paket SaaS", icon: Package, href: "/saas/plans" },
 ];
 

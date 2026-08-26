@@ -50,6 +50,7 @@ export async function GET() {
     nasRows,
     company,
     host,
+    radiusOk,
   ] = await Promise.all([
     listLiveSessions(),
     prisma.invoice.findMany({
@@ -80,6 +81,7 @@ export async function GET() {
     prisma.nas.findMany({ orderBy: { name: "asc" } }),
     getCompanyProfile(),
     hostStats(),
+    isFreeradiusConfigured(),
   ]);
 
   const pppOnline = sessions.filter((row) => row.kind === "ppp").length;
@@ -108,7 +110,7 @@ export async function GET() {
       expCustomer,
     },
     serviceHealth: [
-      { name: "Core Radius", status: isFreeradiusConfigured() ? "ok" : "warn" },
+      { name: "Core Radius", status: radiusOk ? "ok" : "warn" },
       { name: "MikroTik", status: nasDown === 0 && nasRows.length > 0 ? "ok" : nasHealthy > 0 ? "warn" : "idle" },
       { name: "Session", status: pppOnline + hotspotOnline > 0 ? "ok" : "idle" },
       { name: "Pelanggan", status: pppoeUsers + hotspotUsers > 0 ? "ok" : "idle" },

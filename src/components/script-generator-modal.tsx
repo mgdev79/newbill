@@ -141,7 +141,7 @@ export function ScriptGeneratorModal({
       return ':put "Pilih NAS dulu. Port auth/acct diambil dari MySQL FreeRADIUS."';
     }
     if (!nas.radiusAuthPort || !nas.radiusAcctPort) {
-      return `:put "NAS ${nas.name} belum punya port RADIUS. Simpan router saat FREERADIUS_DB_URL terhubung."`;
+      return `:put "NAS ${nas.name} belum punya port RADIUS. Simpan router saat Radius Engine terhubung."`;
     }
     return generateRadiusScript({
       ros,
@@ -359,7 +359,7 @@ export function ScriptGeneratorModal({
             {nas?.radiusIncomingPort || creds?.radiusIncomingPort || 3799}
           </p>
           <p className="text-xs text-slate-500">
-            Address RADIUS di skrip: {radiusAddress || "(isi RADIUS_PUBLIC_IP atau form tambah router)"}
+            Address RADIUS di skrip: {radiusAddress || "(isi Public IP di SaaS Admin → Radius Engine, atau form tambah router)"}
           </p>
           {radiusApiUser ? (
             <p className="text-xs text-slate-600">

@@ -59,7 +59,7 @@ export async function listLiveSessions(kind?: string): Promise<LiveSession[]> {
     });
   }
 
-  if (isFreeradiusConfigured()) {
+  if (await isFreeradiusConfigured()) {
     try {
       const remote = await frQuery<FrAcctRow[]>(
         `SELECT acctsessionid, username, nasipaddress, framedipaddress, callingstationid,
@@ -131,7 +131,7 @@ export async function onlineUsersByNas(nasRows: { id: string; ip: string }[]) {
     sets.get(nasId)?.add(row.sessionId);
   }
 
-  if (isFreeradiusConfigured()) {
+  if (await isFreeradiusConfigured()) {
     try {
       const remote = await frQuery<FrAcctRow[]>(
         "SELECT acctsessionid, nasipaddress FROM radacct WHERE acctstoptime IS NULL",

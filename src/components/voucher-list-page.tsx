@@ -1,10 +1,13 @@
 "use client";
 
+import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { DataTable } from "@/components/data-table";
 import { Modal } from "@/components/modal";
-import { Button, Field, PageHeader, Panel, StatusPill, inputClass } from "@/components/ui";
-import { formatDate } from "@/lib/utils";
+import { IconBtn, SortHead, TablePager, TableToolbar } from "@/components/table-kit";
+import { Button, Field, PageHeader, Panel, inputClass } from "@/components/ui";
+import { formatRp } from "@/lib/money";
+import { formatYmd } from "@/lib/utils";
 
 type Meta = {
   nas: { id: string; name: string; ip: string }[];
@@ -13,6 +16,7 @@ type Meta = {
 
 type Row = {
   id: string;
+  seq: number;
   code: string;
   password: string;
   plan: string;
@@ -24,7 +28,63 @@ type Row = {
   createdAt: string;
   expiresAt: string;
   batchId: string;
+  bindOnLogin?: boolean;
 };
+
+type SortKey =
+  | "seq"
+  | "code"
+  | "password"
+  | "plan"
+  | "priceSell"
+  | "nas"
+  | "createdAt"
+  | "expiresAt"
+  | "owner"
+  | "status"
+  | "aksi";
+
+function sortValue(row: Row, key: SortKey): string | number {
+  switch (key) {
+    case "seq":
+      return row.seq;
+    case "code":
+    case "password":
+    case "plan":
+    case "nas":
+    case "owner":
+      return row[key].toLowerCase();
+    case "priceSell":
+      return row.priceSell;
+    case "createdAt":
+      return new Date(row.createdAt).getTime();
+    case "expiresAt":
+      return row.used ? new Date(row.expiresAt).getTime() : 0;
+    case "status":
+      return voucherStatus(row).label;
+    case "aksi":
+      return row.code.toLowerCase();
+    default:
+      return "";
+  }
+}
+
+function voucherStatus(row: Row) {
+  if (!row.enabled) return { label: "Disabled", className: "bg-[#dd4b39] text-white" };
+  if (new Date(row.expiresAt).getTime() < Date.now() && !row.used) {
+    return { label: "Expired", className: "bg-[#dd4b39] text-white" };
+  }
+  if (row.used) return { label: "Used", className: "bg-[#777] text-white" };
+  return { label: "Active", className: "bg-[#00a65a] text-white" };
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-3.5 fill-current" aria-hidden>
+      <path d="M12.04 2c-5.46 0-9.91 4.43-9.91 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.9-4.44 9.9-9.9C21.94 6.43 17.5 2 12.04 2zm5.72 14.13c-.24.67-1.4 1.24-1.94 1.32-.5.07-1.13.1-1.82-.11-.42-.13-.96-.31-1.66-.61-2.92-1.26-4.83-4.2-4.98-4.39-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.24-.27.64-.39 1.02-.39.12 0 .23 0 .33.01.29.01.44.03.63.49.24.55.82 2 .89 2.15.07.15.12.32.02.52-.09.2-.14.32-.28.5-.14.17-.3.38-.42.51-.14.14-.28.3-.12.58.16.29.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.17-.2.72-.84.91-1.13.19-.29.38-.24.64-.14.27.1 1.71.8 2 .95.29.15.48.22.55.34.07.13.07.75-.17 1.42z" />
+    </svg>
+  );
+}
 
 export function VoucherListPage({
   title,
@@ -37,10 +97,15 @@ export function VoucherListPage({
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editRow, setEditRow] = useState<Row | null>(null);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [lastBatch, setLastBatch] = useState<string | null>(null);
@@ -49,7 +114,8 @@ export function VoucherListPage({
   async function load() {
     setLoading(true);
     const data = await fetch(`/api/v1/vouchers?kind=${kind}`).then((r) => r.json());
-    setRows(data.rows ?? []);
+    const list = (data.rows ?? []) as Omit<Row, "seq">[];
+    setRows(list.map((row, index, arr) => ({ ...row, seq: arr.length - index })));
     setLoading(false);
   }
 
@@ -70,15 +136,36 @@ export function VoucherListPage({
 
   const filtered = useMemo(() => {
     return rows.filter((row) =>
-      `${row.code} ${row.plan} ${row.owner} ${row.batchId}`
+      `${row.code} ${row.plan} ${row.owner} ${row.batchId} ${row.nas}`
         .toLowerCase()
         .includes(query.toLowerCase()),
     );
   }, [query, rows]);
 
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const list = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      const av = sortValue(a, sortKey);
+      const bv = sortValue(b, sortKey);
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return list;
+  }, [filtered, sortKey, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageRows = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, pageSize, kind, sortKey, sortDir]);
+
   const selectedIds = filtered.filter((row) => selected[row.id]).map((row) => row.id);
-  const allSelected =
-    filtered.length > 0 && filtered.every((row) => selected[row.id]);
+  const allPageSelected = pageRows.length > 0 && pageRows.every((row) => selected[row.id]);
 
   function needSelection(action: string) {
     if (!selectedIds.length) {
@@ -162,6 +249,39 @@ export function VoucherListPage({
     await load();
   }
 
+  function waToast() {
+    setToast("Kirim via WhatsApp: konfigurasi tersimpan, API provider belum dihubungkan.");
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  }
+
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editRow) return;
+    const fd = new FormData(event.currentTarget);
+    await fetch(`/api/v1/vouchers/${editRow.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        owner: String(fd.get("owner") ?? ""),
+        enabled: fd.get("enabled") === "yes",
+        bindOnLogin: fd.get("bind") === "yes",
+      }),
+    });
+    setEditRow(null);
+    await load();
+  }
+
+  const from = sorted.length ? (safePage - 1) * pageSize + 1 : 0;
+  const to = Math.min(safePage * pageSize, sorted.length);
+
   return (
     <div>
       <PageHeader
@@ -178,8 +298,7 @@ export function VoucherListPage({
         ]}
       />
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="relative" ref={menuRef}>
+      <div className="relative mb-3" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
@@ -345,13 +464,21 @@ export function VoucherListPage({
           ) : null}
         </div>
 
-        <Button
-          variant="secondary"
-          onClick={() => setToast("Kirim via Whatsapp: butuh WhatsApp API aktif.")}
-        >
-          Kirim via Whatsapp
-        </Button>
-      </div>
+      <ul className="mb-3 list-disc space-y-1 pl-5 text-[13px] text-[#444]">
+        <li>Voucher yang sudah digenerate disarankan untuk langsung dicetak.</li>
+        <li>
+          Klik tombol ini:{" "}
+          <button
+            type="button"
+            onClick={waToast}
+            className="inline-flex h-6 items-center gap-1 rounded-sm bg-[#00a65a] px-2 text-[12px] font-semibold text-white hover:bg-[#008d4c]"
+          >
+            <WhatsAppIcon />
+            Kirim via Whatsapp
+          </button>{" "}
+          jika ingin mengirim voucher ke nomor whatsapp.
+        </li>
+      </ul>
 
       {toast ? (
         <p className="mb-3 rounded-sm border border-[#bce8f1] bg-[#d9edf7] px-3 py-2 text-[13px] text-[#31708f]">
@@ -359,69 +486,117 @@ export function VoucherListPage({
         </p>
       ) : null}
 
-      <Panel title="Daftar voucher">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <input
-            id="voucher-search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari kode, paket, owner, batch"
-            className="h-8 min-w-56 flex-1 rounded-sm border border-[var(--lte-line)] px-2.5 text-[13px]"
-          />
-          <Button variant="secondary" onClick={() => void load()}>
-            Refresh
-          </Button>
-        </div>
+      <Panel>
+        <TableToolbar
+          pageSize={pageSize}
+          onPageSize={setPageSize}
+          query={query}
+          onQuery={setQuery}
+          searchId="voucher-search"
+        />
         {loading ? (
           <p className="py-6 text-center text-[13px] text-[var(--lte-muted)]">Memuat…</p>
         ) : (
-          <DataTable
-            headers={[
-              <input
-                key="all"
-                type="checkbox"
-                checked={allSelected}
-                onChange={(e) => {
-                  const next = { ...selected };
-                  for (const row of filtered) next[row.id] = e.target.checked;
-                  setSelected(next);
-                }}
-                aria-label="Pilih semua"
-              />,
-              "Username",
-              "Password",
-              "Nama Profil",
-              "Harga Jual",
-              "Server",
-              "Dibuat",
-              "Jatuh Tempo",
-              "Owner",
-              "Status",
-            ]}
-            rows={filtered.map((row) => [
-              <input
-                key={`${row.id}-c`}
-                type="checkbox"
-                checked={Boolean(selected[row.id])}
-                onChange={(e) =>
-                  setSelected((prev) => ({ ...prev, [row.id]: e.target.checked }))
-                }
-                aria-label={`Pilih ${row.code}`}
-              />,
-              row.code,
-              row.password,
-              row.plan,
-              `Rp ${row.priceSell.toLocaleString("id-ID")}`,
-              row.nas,
-              formatDate(row.createdAt),
-              formatDate(row.expiresAt),
-              row.owner,
-              <StatusPill
-                key={`${row.id}-s`}
-                status={row.enabled ? (row.used ? "isolated" : "active") : "disabled"}
-              />,
-            ])}
-          />
+          <>
+            <DataTable
+              headers={[
+                <input
+                  key="all"
+                  type="checkbox"
+                  checked={allPageSelected}
+                  onChange={(e) => {
+                    const next = { ...selected };
+                    for (const row of pageRows) next[row.id] = e.target.checked;
+                    setSelected(next);
+                  }}
+                  aria-label="Pilih semua di halaman ini"
+                />,
+                <SortHead key="h-id" label="Id" active={sortKey === "seq"} dir={sortDir} onClick={() => toggleSort("seq")} />,
+                <SortHead key="h-user" label="Username" active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />,
+                <SortHead key="h-pass" label="Password" active={sortKey === "password"} dir={sortDir} onClick={() => toggleSort("password")} />,
+                <SortHead key="h-plan" label="Nama Profil" active={sortKey === "plan"} dir={sortDir} onClick={() => toggleSort("plan")} />,
+                <SortHead key="h-price" label="Harga Jual" active={sortKey === "priceSell"} dir={sortDir} onClick={() => toggleSort("priceSell")} />,
+                <SortHead key="h-nas" label="Nama Server | Service" active={sortKey === "nas"} dir={sortDir} onClick={() => toggleSort("nas")} />,
+                <SortHead key="h-created" label="Tanggal Dibuat" active={sortKey === "createdAt"} dir={sortDir} onClick={() => toggleSort("createdAt")} />,
+                <SortHead key="h-due" label="Jatuh Tempo" active={sortKey === "expiresAt"} dir={sortDir} onClick={() => toggleSort("expiresAt")} />,
+                <SortHead key="h-own" label="Owner Data" active={sortKey === "owner"} dir={sortDir} onClick={() => toggleSort("owner")} />,
+                <SortHead key="h-st" label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => toggleSort("status")} />,
+                <SortHead key="h-aksi" label="Aksi" active={sortKey === "aksi"} dir={sortDir} onClick={() => toggleSort("aksi")} />,
+              ]}
+              rows={pageRows.map((row) => {
+                const status = voucherStatus(row);
+                return [
+                  <input
+                    key={`${row.id}-c`}
+                    type="checkbox"
+                    checked={Boolean(selected[row.id])}
+                    onChange={(e) =>
+                      setSelected((prev) => ({ ...prev, [row.id]: e.target.checked }))
+                    }
+                    aria-label={`Pilih ${row.code}`}
+                  />,
+                  row.seq,
+                  <span key={`${row.id}-u`} className="inline-flex items-center gap-1">
+                    {row.code}
+                    <button
+                      type="button"
+                      title="Kirim via WhatsApp"
+                      className="inline-flex size-5 items-center justify-center rounded-sm bg-[#25d366] text-white"
+                      onClick={waToast}
+                    >
+                      <WhatsAppIcon />
+                    </button>
+                  </span>,
+                  row.password,
+                  row.plan,
+                  formatRp(row.priceSell),
+                  row.nas || "Semua Server & NAS",
+                  formatYmd(row.createdAt),
+                  row.used ? formatYmd(row.expiresAt) : "Waiting Login",
+                  row.owner || "admin",
+                  <span key={`${row.id}-s`} className="inline-flex flex-wrap items-center gap-1">
+                    <span className={`inline-flex rounded-sm px-1.5 py-0.5 text-[11px] font-semibold ${status.className}`}>
+                      {status.label}
+                    </span>
+                    {lastBatch && row.batchId === lastBatch ? (
+                      <span className="inline-flex rounded-sm bg-[#00c0ef] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                        last created
+                      </span>
+                    ) : null}
+                  </span>,
+                  <div key={`${row.id}-a`} className="flex items-center gap-1">
+                    <IconBtn
+                      title="Edit"
+                      className="bg-[#00c0ef] hover:bg-[#00a7d0]"
+                      onClick={() => setEditRow(row)}
+                    >
+                      <Pencil className="size-3.5" />
+                    </IconBtn>
+                    <IconBtn
+                      title="Hapus"
+                      className="bg-[#f39c12] hover:bg-[#e08e0b]"
+                      onClick={() => {
+                        if (!window.confirm(`Hapus voucher ${row.code}?`)) return;
+                        void fetch(`/api/v1/vouchers/${row.id}`, { method: "DELETE" }).then(
+                          () => void load(),
+                        );
+                      }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </IconBtn>
+                  </div>,
+                ];
+              })}
+            />
+            <TablePager
+              from={from}
+              to={to}
+              total={sorted.length}
+              page={safePage}
+              pageCount={pageCount}
+              onPage={setPage}
+            />
+          </>
         )}
       </Panel>
 
@@ -545,6 +720,49 @@ export function VoucherListPage({
             </p>
           </form>
         )}
+      </Modal>
+
+      <Modal
+        title="Ubah Voucher"
+        open={Boolean(editRow)}
+        onClose={() => setEditRow(null)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditRow(null)}>
+              Batal
+            </Button>
+            <Button type="submit" form="voucher-edit-form">
+              Simpan
+            </Button>
+          </>
+        }
+      >
+        {editRow ? (
+          <form id="voucher-edit-form" onSubmit={(e) => void saveEdit(e)} className="grid gap-3">
+            <Field label="Username">
+              <input className={inputClass} value={editRow.code} readOnly />
+            </Field>
+            <Field label="Owner Data">
+              <input name="owner" defaultValue={editRow.owner} className={inputClass} />
+            </Field>
+            <Field label="Status">
+              <select name="enabled" defaultValue={editRow.enabled ? "yes" : "no"} className={inputClass}>
+                <option value="yes">Aktif</option>
+                <option value="no">Nonaktif</option>
+              </select>
+            </Field>
+            <Field label="Bind On Login">
+              <select
+                name="bind"
+                defaultValue={editRow.bindOnLogin ? "yes" : "no"}
+                className={inputClass}
+              >
+                <option value="no">TIDAK</option>
+                <option value="yes">YA</option>
+              </select>
+            </Field>
+          </form>
+        ) : null}
       </Modal>
     </div>
   );

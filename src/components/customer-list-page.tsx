@@ -14,7 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import { DataTable } from "@/components/data-table";
-import { Button, PageHeader, Panel, StatCard, inputClass } from "@/components/ui";
+import { Button, PageHeader, Panel, StatCard, StatusPill, inputClass } from "@/components/ui";
 import { cn, formatDateTime } from "@/lib/utils";
 
 type Row = {
@@ -480,8 +480,10 @@ export function CustomerListPage({
                 "Tipe Service",
                 "Paket Langganan",
                 "IP Address",
+                "ODP",
                 "Diperpanjang",
                 "Jatuh Tempo",
+                "Status",
                 "Owner Data",
                 "Renew | Print",
                 "Aksi",
@@ -509,9 +511,7 @@ export function CustomerListPage({
                   </span>
                   <div>
                     <p>{row.name}</p>
-                    {row.odp ? (
-                      <p className="text-[11px] text-[var(--lte-muted)]">{row.odp}</p>
-                    ) : null}
+                    <p className="text-[11px] text-[var(--lte-muted)]">{row.username}</p>
                   </div>
                 </div>,
                 <span
@@ -522,10 +522,12 @@ export function CustomerListPage({
                 </span>,
                 row.plan,
                 row.ip || "Automatic",
+                row.odp || "—",
                 formatDateTime(row.renewedAt),
                 <span key={`${row.id}-due`} className="text-[var(--lte-blue)]">
                   {formatDateTime(row.dueAt)}
                 </span>,
+                <StatusPill key={`${row.id}-s`} status={row.status} />,
                 row.owner || "admin",
                 <div key={`${row.id}-rp`} className="flex items-center gap-1">
                   <IconBtn

@@ -211,6 +211,7 @@ model Invoice {
   method           String   @default("Manual")
   payMode          String   @default("prepaid")
   subscriptionType String   @default("regular")
+  paidAt           DateTime?
   createdAt        DateTime @default(now())
 }
 
@@ -293,4 +294,86 @@ model RadiusLog {
   result    String
   message   String
   nasIp     String   @default("")
+}
+
+model Odp {
+  id       String @id @default(cuid())
+  name     String @unique
+  area     String @default("")
+  lat      String @default("")
+  lng      String @default("")
+  capacity Int    @default(16)
+  note     String @default("")
+}
+
+model Neighbor {
+  id       String @id @default(cuid())
+  identity String
+  address  String
+  mac      String @default("")
+  board    String @default("")
+}
+
+model Ticket {
+  id        String        @id @default(cuid())
+  subject   String
+  customer  String        @default("")
+  status    String        @default("open")
+  body      String        @default("")
+  createdAt DateTime      @default(now())
+  replies   TicketReply[]
+}
+
+model TicketReply {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    String   @default("admin")
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model StaffUser {
+  id           String  @id @default(cuid())
+  username     String  @unique
+  passwordHash String
+  role         String  @default("operator")
+  topup        Boolean @default(false)
+  balance      Int     @default(0)
+}
+
+model FinancePayout {
+  id       String   @id @default(cuid())
+  at       DateTime @default(now())
+  category String   @default("operasional")
+  note     String   @default("")
+  amount   Int
+}
+
+model FinanceTopup {
+  id       String   @id @default(cuid())
+  at       DateTime @default(now())
+  reseller String
+  amount   Int
+  status   String   @default("paid")
+}
+
+model PaymentTxn {
+  id        String   @id @default(cuid())
+  ref       String   @unique
+  customer  String   @default("")
+  amount    Int
+  channel   String   @default("")
+  status    String   @default("pending")
+  provider  String   @default("manual")
+  note      String   @default("")
+  at        DateTime @default(now())
+}
+
+model ActivityLog {
+  id      String   @id @default(cuid())
+  at      DateTime @default(now())
+  actor   String
+  message String
+  kind    String
 }

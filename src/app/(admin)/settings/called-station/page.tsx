@@ -1,8 +1,10 @@
 import { JsonSettingList } from "@/components/json-setting-list";
 
+type CalledStation = { id: string; type: string; nas: string; name: string };
+
 export default function Page() {
   return (
-    <JsonSettingList
+    <JsonSettingList<CalledStation>
       title="Called station"
       description="Daftar server hotspot/PPPoE. Tersimpan di AppSetting, bukan mock."
       settingKey="called_stations"

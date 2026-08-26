@@ -321,8 +321,8 @@ export default function TenantDetailPage() {
 
       <Panel className="mt-4" title="Pengaturan Lisensi (panel operator)">
         <p className="mb-3 text-[12px] text-[var(--lte-muted)]">
-          Data ini muncul di menu operator <strong>Pengaturan → Info Lisensi</strong>{" "}
-          (/settings/license), setara Mixradius /rad-licence/details.
+          Data ini muncul di <strong>SaaS → Info Lisensi</strong> dan di operator{" "}
+          <strong>Pengaturan → Info Lisensi</strong>, setara Mixradius /rad-licence/details.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {billingBound ? (
@@ -334,6 +334,12 @@ export default function TenantDetailPage() {
               Jadikan tenant lisensi panel billing
             </Button>
           )}
+          <Link
+            href="/saas/license"
+            className="text-[12px] text-[var(--lte-blue)] hover:underline"
+          >
+            Pratinjau Mixradius (SaaS) →
+          </Link>
           <Link
             href="/settings/license"
             className="text-[12px] text-[var(--lte-blue)] hover:underline"

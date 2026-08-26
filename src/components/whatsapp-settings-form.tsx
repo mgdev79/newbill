@@ -143,12 +143,6 @@ const WARNINGS = [
   "NOMOR PENGIRIM harus selalu online",
   "Gunakan nomor khusus sebagai NOMOR PENGIRIM dan daftarkan untuk whatsapp tipe bisnis",
 ];
-  "NOMOR CS adalah nomor yang akan digunakan untuk dukungan layanan pelanggan",
-  "NOMOR PENGIRIM adalah nomor yang akan digunakan untuk mengirimkan pesan whatsapp kepada pelanggan",
-  "NOMOR PENGIRIM yang akan diintegrasikan ke Newbill harus sudah dipakai kirim/balas chat beberapa kali",
-  "NOMOR PENGIRIM harus selalu online",
-  "Gunakan nomor khusus sebagai NOMOR PENGIRIM dan daftarkan untuk whatsapp tipe bisnis",
-];
 
 export function WhatsappSettingsForm({
   appBaseUrl,

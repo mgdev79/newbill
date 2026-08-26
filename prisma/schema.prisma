@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Nas {
+  id            String     @id @default(cuid())
+  name          String     @unique
+  ip            String
+  apiPort       Int        @default(8728)
+  useSsl        Boolean    @default(false)
+  timeoutSec    Int        @default(5)
+  apiUser       String     @default("newbill")
+  apiPassword   String     @default("")
+  timezone      String     @default("Asia/Jakarta")
+  healthy       Boolean    @default(false)
+  enabled       Boolean    @default(true)
+  description   String     @default("")
+  radiusSecret  String     @default("testing123")
+  latitude      String     @default("")
+  longitude     String     @default("")
+  coverageM     Int        @default(0)
+  hotspotUrl    String     @default("")
+  isolirUrl     String     @default("")
+  enablePpp     Boolean    @default(true)
+  enableHotspot Boolean    @default(false)
+  lastSeenAt    DateTime?
+  lastError     String     @default("")
+  customers     Customer[]
+  vouchers      Voucher[]
+  sessions      RadAcct[]
+  groups        ProfileGroup[]
+}
+
+model AppSetting {
+  key   String @id
+  value String
+}
+
+model SaasPlan {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  code          String   @unique
+  priceMonth    Int      @default(0)
+  vpnQuota      Int      @default(1)
+  routerLimit   Int      @default(1)
+  customerLimit Int      @default(250)
+  voucherLimit  Int      @default(15000)
+  sessionLimit  Int      @default(300)
+  description   String   @default("")
+  tenants       Tenant[]
+}
+
+model Tenant {
+  id                  String       @id @default(cuid())
+  code                String       @unique
+  name                String
+  email               String       @unique
+  password            String
+  phone               String       @default("")
+  status              String       @default("active")
+  planId              String
+  plan                SaasPlan     @relation(fields: [planId], references: [id])
+  expiresAt           DateTime?
+  activatedAt         DateTime?
+  requestId           String       @default("")
+  hardwareId          String       @default("")
+  softwareKey         String       @default("")
+  sessionLimit        Int?
+  billingUrl          String       @default("")
+  radiusPublicIp      String       @default("")
+  notes               String       @default("")
+  createdAt           DateTime     @default(now())
+  vpnAccounts         VpnAccount[]
+}
+
+model VpnServer {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  host           String       @unique
+  region         String       @default("Indonesia")
+  online         Boolean      @default(true)
+  innerRadiusIp  String       @default("")
+  note           String       @default("")
+  apiPort        Int          @default(8728)
+  useSsl         Boolean      @default(false)
+  timeoutSec     Int          @default(5)
+  apiUser        String       @default("newbill")
+  apiPassword    String       @default("")
+  lastSeenAt     DateTime?
+  lastError      String       @default("")
+  accounts       VpnAccount[]
+}
+
+model VpnAccount {
+  id             String    @id @default(cuid())
+  label          String
+  username       String
+  password       String    @default("")
+  type           String    @default("l2tp")
+  innerRadiusIp  String    @default("")
+  note           String    @default("")
+  enabled        Boolean   @default(true)
+  tenantId       String?
+  tenant         Tenant?   @relation(fields: [tenantId], references: [id])
+  serverId       String?
+  server         VpnServer? @relation(fields: [serverId], references: [id])
+  serverHost     String    @default("")
+}
+
+model Bandwidth {
+  id      String @id @default(cuid())
+  name    String @unique
+  minUp   String
+  maxUp   String
+  minDown String
+  maxDown String
+  owner   String @default("admin")
+  plans   Plan[]
+}
+
+model ProfileGroup {
+  id     String @id @default(cuid())
+  name   String @unique
+  type   String
+  nasId  String
+  nas    Nas    @relation(fields: [nasId], references: [id])
+  pool   String
+  owner  String @default("admin")
+  plans  Plan[]
+}
+
+model Plan {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  type        String
+  priceBase   Int
+  priceSell   Int
+  vatPct      Int           @default(0)
+  validity    String
+  sharedUsers Int           @default(1)
+  bandwidthId String
+  bandwidth   Bandwidth     @relation(fields: [bandwidthId], references: [id])
+  groupId     String
+  group       ProfileGroup  @relation(fields: [groupId], references: [id])
+  customers   Customer[]
+  vouchers    Voucher[]
+}
+
+model Customer {
+  id               String    @id @default(cuid())
+  customerCode     String    @unique
+  name             String
+  username         String    @unique
+  password         String
+  phone            String    @default("")
+  email            String    @default("")
+  address          String    @default("")
+  identityNumber   String    @default("")
+  note             String    @default("")
+  portalPassword   String    @default("")
+  serviceType      String
+  kind             String
+  ip               String    @default("")
+  localAddress     String    @default("")
+  ipAddressType    String    @default("automatic")
+  dueAt            DateTime
+  renewedAt        DateTime?
+  owner            String    @default("admin")
+  status           String
+  payMode          String
+  trxStatus        String    @default("paid")
+  subscriptionType String    @default("regular")
+  expiredAction    String    @default("isolir")
+  discount         Int       @default(0)
+  sellerFee        Int       @default(0)
+  setupFee         Int       @default(0)
+  deviceFee        Int       @default(0)
+  applyTax         Boolean   @default(true)
+  latitude         String    @default("")
+  longitude        String    @default("")
+  nasId            String
+  nas              Nas       @relation(fields: [nasId], references: [id])
+  planId           String
+  plan             Plan      @relation(fields: [planId], references: [id])
+  odp              String    @default("")
+  bindOnLogin      Boolean   @default(false)
+  boundMac         String    @default("")
+  sessions         RadAcct[]
+  invoices         Invoice[]
+}
+
+model Invoice {
+  id               String   @id @default(cuid())
+  number           String   @unique
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  planName         String
+  planNote         String   @default("")
+  periodLabel      String   @default("1 Bulan")
+  amount           Int
+  subTotal         Int
+  taxAmount        Int      @default(0)
+  deviceFee        Int      @default(0)
+  dueAt            DateTime
+  status           String
+  method           String   @default("Manual")
+  payMode          String   @default("prepaid")
+  subscriptionType String   @default("regular")
+  createdAt        DateTime @default(now())
+}
+
+model Voucher {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  password     String
+  kind         String
+  serviceType  String    @default("")
+  owner        String    @default("admin")
+  enabled      Boolean   @default(true)
+  used         Boolean   @default(false)
+  bindOnLogin  Boolean   @default(false)
+  loginMethod  String    @default("voucher_code")
+  sellerFee    Int       @default(0)
+  prefix       String    @default("")
+  batchId      String    @default("")
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  nasId        String
+  nas          Nas       @relation(fields: [nasId], references: [id])
+  planId       String
+  plan         Plan      @relation(fields: [planId], references: [id])
+  boundMac     String    @default("")
+  sessions     RadAcct[]
+}
+
+model EvoucherOrder {
+  id              String   @id @default(cuid())
+  source          String   @default("portal")
+  customer        String
+  phone           String   @default("")
+  email           String   @default("")
+  planName        String
+  planId          String   @default("")
+  qty             Int      @default(1)
+  amount          Int      @default(0)
+  hotspotDomain   String   @default("")
+  paymentChannel  String   @default("")
+  status          String   @default("pending")
+  note            String   @default("")
+  createdAt       DateTime @default(now())
+}
+
+model VoucherTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  accessBy  String   @default("all")
+  enabled   Boolean  @default(true)
+  html      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RadAcct {
+  id               String    @id @default(cuid())
+  sessionId        String    @unique
+  username         String
+  kind             String
+  nasIp            String
+  framedIp         String    @default("")
+  callingStationId String    @default("")
+  startedAt        DateTime  @default(now())
+  stoppedAt        DateTime?
+  inputOctets      BigInt    @default(0)
+  outputOctets     BigInt    @default(0)
+  sessionTime      Int       @default(0)
+  nasId            String?
+  nas              Nas?      @relation(fields: [nasId], references: [id])
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  voucherId        String?
+  voucher          Voucher?  @relation(fields: [voucherId], references: [id])
+}
+
+model RadiusLog {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  username  String
+  result    String
+  message   String
+  nasIp     String   @default("")
+}

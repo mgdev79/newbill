@@ -63,6 +63,25 @@ export async function removeNasByRecord(nas: { name: string; ip: string }) {
   return removeNasRadius(nas);
 }
 
+export async function resyncUsersOnPlan(planId: string) {
+  const [customers, vouchers] = await Promise.all([
+    prisma.customer.findMany({ where: { planId }, select: { id: true } }),
+    prisma.voucher.findMany({ where: { planId }, select: { id: true } }),
+  ]);
+  for (const row of customers) await syncCustomerById(row.id);
+  for (const row of vouchers) await syncVoucherById(row.id);
+}
+
+export async function resyncUsersOnBandwidth(bandwidthId: string) {
+  const plans = await prisma.plan.findMany({ where: { bandwidthId }, select: { id: true } });
+  for (const plan of plans) await resyncUsersOnPlan(plan.id);
+}
+
+export async function resyncUsersOnGroup(groupId: string) {
+  const plans = await prisma.plan.findMany({ where: { groupId }, select: { id: true } });
+  for (const plan of plans) await resyncUsersOnPlan(plan.id);
+}
+
 export function radiusMeta(result: unknown) {
   if (!result || typeof result !== "object") return undefined;
   const row = result as { skipped?: boolean; provisionError?: string; reason?: string };

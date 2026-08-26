@@ -1,3 +1,5 @@
+"use client";
+
 import { JsonSettingList } from "@/components/json-setting-list";
 
 type HotspotDomain = { id: string; domain: string };

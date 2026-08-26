@@ -1,3 +1,5 @@
+"use client";
+
 import { JsonSettingList } from "@/components/json-setting-list";
 
 type CalledStation = { id: string; type: string; nas: string; name: string };

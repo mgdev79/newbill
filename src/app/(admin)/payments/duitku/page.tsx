@@ -74,7 +74,7 @@ export default function Page() {
     <div>
       <PageHeader
         title="Duitku"
-        description="Ledger transaksi lokal. Konfigurasi Duitku tersimpan di Settings; panggilan API provider belum diaktifkan."
+        description="Ledger transaksi lokal. Kredensial per-provider di Pengaturan → Payment Gateway. Checkout HTTP provider belum diaktifkan."
       />
       {toast ? (
         <p className="mb-3 rounded-sm border border-[#ebccd1] bg-[#f2dede] px-3 py-2 text-[13px] text-[#a94442]">

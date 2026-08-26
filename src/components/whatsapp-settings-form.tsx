@@ -29,7 +29,7 @@ const TEMPLATE_VARS: { key: string; desc: string }[] = [
   { key: "$_FULLNAME", desc: "nama pelanggan" },
   { key: "$_CUSTOMERID", desc: "id pelanggan" },
   { key: "$_EMAIL", desc: "email pelanggan" },
-  { key: "$_INVOICE", desc: "no.invoice" },
+  { key: "$_INVOICE", desc: "no. invoice" },
   { key: "$_PLAN", desc: "paket langganan pelanggan" },
   { key: "$_PAYTYPE", desc: "prepaid atau postpaid" },
   { key: "$_ACTIVEON", desc: "tanggal terakhir kali pelanggan diaktifkan" },
@@ -46,7 +46,7 @@ const TEMPLATE_VARS: { key: string; desc: string }[] = [
   { key: "$_ADDRESS", desc: "alamat perusahaan anda" },
   { key: "$_PHONE", desc: "nomor telepon anda" },
   { key: "$_BANKACCOUNT", desc: "rekening pembayaran" },
-  { key: "$_PAYMENTLINK", desc: "link pembayaran (tanpa login portal # optional)" },
+  { key: "$_PAYMENTLINK", desc: "link pembayaran (tanpa login portal | optional)" },
 ];
 
 type Category = "pendaftaran" | "jatuh_tempo" | "perpanjangan";
@@ -127,7 +127,22 @@ function renderTemplate(text: string, vars: Record<string, string>) {
   return out;
 }
 
+function navTabClass(active: boolean) {
+  return cn(
+    "relative -mb-px border px-4 py-2 text-[13px]",
+    active
+      ? "border-[var(--lte-line)] border-b-white border-t-[3px] border-t-[var(--lte-blue)] bg-white font-semibold text-[var(--lte-blue)]"
+      : "border-transparent bg-[#ecf0f5] text-[#444]",
+  );
+}
+
 const WARNINGS = [
+  "NOMOR CS adalah nomor yang akan digunakan untuk dukungan layanan pelanggan",
+  "NOMOR PENGIRIM adalah nomor yang akan digunakan untuk mengirimkan pesan whatsapp kepada pelanggan",
+  "NOMOR PENGIRIM yang akan diintegrasikan ke Newbill harus sudah dipakai kirim/balas chat beberapa kali",
+  "NOMOR PENGIRIM harus selalu online",
+  "Gunakan nomor khusus sebagai NOMOR PENGIRIM dan daftarkan untuk whatsapp tipe bisnis",
+];
   "NOMOR CS adalah nomor yang akan digunakan untuk dukungan layanan pelanggan",
   "NOMOR PENGIRIM adalah nomor yang akan digunakan untuk mengirimkan pesan whatsapp kepada pelanggan",
   "NOMOR PENGIRIM yang akan diintegrasikan ke Newbill harus sudah dipakai kirim/balas chat beberapa kali",
@@ -161,30 +176,15 @@ export function WhatsappSettingsForm({
           <li key={item}>{item}</li>
         ))}
       </ul>
-      <div className="mb-3 flex gap-0 border-b border-[var(--lte-line)]">
-        <button
-          type="button"
-          onClick={() => setTab("config")}
-          className={`border px-4 py-2 text-[13px] ${
-            tab === "config"
-              ? "border-b-white bg-white text-[var(--lte-blue)]"
-              : "border-transparent bg-[#f7f7f7] text-[#444]"
-          }`}
-        >
+      <div className="mb-0 flex border-b border-[var(--lte-line)] bg-[#ecf0f5] px-2 pt-2">
+        <button type="button" onClick={() => setTab("config")} className={navTabClass(tab === "config")}>
           Konfigurasi
         </button>
-        <button
-          type="button"
-          onClick={() => setTab("templates")}
-          className={`border px-4 py-2 text-[13px] ${
-            tab === "templates"
-              ? "border-b-white bg-white text-[var(--lte-blue)]"
-              : "border-transparent bg-[#f7f7f7] text-[#444]"
-          }`}
-        >
+        <button type="button" onClick={() => setTab("templates")} className={navTabClass(tab === "templates")}>
           Template Pesan
         </button>
       </div>
+      <div className="mb-3 border border-t-0 border-[var(--lte-line)] bg-white p-3">
       {tab === "config" ? (
         <WhatsappConfigForm appBaseUrl={appBaseUrl} />
       ) : (
@@ -195,6 +195,7 @@ export function WhatsappSettingsForm({
           companyBank={companyBank}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -411,27 +412,34 @@ function WhatsappTemplateForm({
   }
 
   return (
+    <>
+      <Panel title="Common Variables">
+        <ul className="text-[13px] leading-7 text-[#444]">
+          {TEMPLATE_VARS.map((row) => (
+            <li key={row.key} className="flex items-start gap-2">
+              <button
+                type="button"
+                className="mt-0.5 inline-flex h-[22px] shrink-0 items-center rounded-sm border border-[var(--lte-line)] bg-[#f4f4f4] px-1.5 text-[11px] font-medium text-[#333] hover:bg-white"
+                onClick={() => void copyVar(row.key)}
+              >
+                {copied === row.key ? "Copied" : "Copy"}
+              </button>
+              <span>
+                <span className="font-semibold">{row.key}</span>
+                {" = "}
+                {row.desc}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[12px] text-[#555]">
+          Anda bisa menggunakan format text yang biasa digunakan di whatsapp, contoh : bold = *bold*, italic :
+          _italic_, bold and italic : _*bold and italic*_
+        </p>
+      </Panel>
+
+      <div className="mt-3">
     <SettingsForm namespace="whatsapp.template" title="Template Pesan" hideHeader skipLoad>
-      <div className="md:col-span-2">
-        <Panel title="Common Variables">
-          <ul className="divide-y divide-[var(--lte-line)]">
-            {TEMPLATE_VARS.map((row) => (
-              <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-[13px]">
-                <span className="font-mono text-[#333]">
-                  {row.key} <span className="font-sans text-[var(--lte-muted)]">= {row.desc}</span>
-                </span>
-                <Button variant="secondary" onClick={() => void copyVar(row.key)}>
-                  {copied === row.key ? "Copied" : "Copy"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-[11px] text-[var(--lte-muted)]">
-            Anda bisa menggunakan format text yang biasa digunakan di whatsapp, contoh: bold = *bold*, italic:
-            _italic_, bold and italic: _*bold and italic*_
-          </p>
-        </Panel>
-      </div>
 
       <div className="md:col-span-2 flex flex-wrap gap-1">
         {(
@@ -487,5 +495,7 @@ function WhatsappTemplateForm({
         ) : null}
       </div>
     </SettingsForm>
+      </div>
+    </>
   );
 }

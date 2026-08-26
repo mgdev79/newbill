@@ -1,0 +1,14 @@
+---
+description: Setelah pekerjaan selesai, commit dan push ke mgdev79/newbill.
+alwaysApply: true
+---
+
+# Commit dan push ke mgdev79
+
+Kalau suatu tugas implementasi sudah selesai (bukan WIP yang user minta ditahan), selalu:
+
+1. `git commit` dengan pesan singkat yang menjelaskan *mengapa*.
+2. `git push` ke `origin` repo `mgdev79/newbill`.
+3. Autentikasi GitHub memakai akun **mgdev79**, bukan `mazzamzoom`. Untuk HTTPS: `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin HEAD` setelah `gh api user` memastikan login `mgdev79`.
+
+Jangan commit `.env`, `dev.db`, atau file rahasia.

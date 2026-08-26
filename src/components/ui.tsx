@@ -178,14 +178,19 @@ export function Button({
 export function Field({
   label,
   children,
+  className,
+  hint,
 }: {
-  label: string;
+  label: ReactNode;
   children: ReactNode;
+  className?: string;
+  hint?: ReactNode;
 }) {
   return (
-    <label className="block text-[12px] font-semibold text-[#555]">
+    <label className={cn("block text-[12px] font-semibold text-[#555]", className)}>
       {label}
       <div className="mt-1">{children}</div>
+      {hint ? <p className="mt-1 font-normal text-[11px] text-[var(--lte-muted)]">{hint}</p> : null}
     </label>
   );
 }

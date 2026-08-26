@@ -3,6 +3,34 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Button, PageHeader, Panel } from "@/components/ui";
 
+function applySettingValue(form: HTMLFormElement, name: string, value: string) {
+  const el = form.elements.namedItem(name);
+  if (!el) return;
+  if (el instanceof RadioNodeList) {
+    for (const node of el) {
+      if (node instanceof HTMLInputElement && node.type === "radio") {
+        node.checked = node.value === value;
+      }
+    }
+    return;
+  }
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "file") return;
+    if (el.type === "checkbox") {
+      el.checked = value === "1" || value === "true" || value === "on";
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+    el.value = value;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+  if (el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+    el.value = value;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
 export function SettingsForm({
   title,
   description,
@@ -37,30 +65,28 @@ export function SettingsForm({
         if (!form) return;
         for (const row of data.rows ?? []) {
           const name = prefix ? row.key.slice(prefix.length) : row.key;
-          const el = form.elements.namedItem(name);
-          if (
-            el instanceof HTMLInputElement ||
-            el instanceof HTMLSelectElement ||
-            el instanceof HTMLTextAreaElement
-          ) {
-            if (el instanceof HTMLInputElement && el.type === "file") continue;
-            el.value = row.value;
-          }
+          applySettingValue(form, name, row.value);
         }
       });
-  }, [namespace]);
+  }, [namespace, keys]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setSaved(false);
     setError(null);
-    const fd = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const fd = new FormData(form);
     const entries: Record<string, string> = {};
     for (const [name, value] of fd.entries()) {
       if (typeof value !== "string") continue;
       const key = namespace ? `${namespace}.${name}` : name;
       entries[key] = value;
+    }
+    for (const el of Array.from(form.elements)) {
+      if (!(el instanceof HTMLInputElement) || el.type !== "checkbox" || !el.name) continue;
+      const key = namespace ? `${namespace}.${el.name}` : el.name;
+      entries[key] = el.checked ? el.value || "1" : "0";
     }
     const response = await fetch("/api/v1/settings", {
       method: "PUT",

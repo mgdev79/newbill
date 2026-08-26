@@ -3,9 +3,9 @@ import { SettingsForm } from "@/components/settings-form";
 
 export default function Page() {
   return (
-    <SettingsForm title="Google Map API">
+    <SettingsForm namespace="maps" title="Google Map API">
       <Field label="Maps API key">
-        <input type="password" className={inputClass} />
+        <input name="api_key" type="password" className={inputClass} autoComplete="off" />
       </Field>
     </SettingsForm>
   );

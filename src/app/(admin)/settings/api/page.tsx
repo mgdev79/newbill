@@ -3,12 +3,16 @@ import { SettingsForm } from "@/components/settings-form";
 
 export default function Page() {
   return (
-    <SettingsForm title="API client area" description="Key untuk portal pelanggan terpisah.">
+    <SettingsForm
+      namespace="client_api"
+      title="API client area"
+      description="Key tersimpan di AppSetting. Belum dipakai memanggil layanan eksternal."
+    >
       <Field label="API key">
-        <input readOnly defaultValue="nb_live_••••••••" className={inputClass} />
+        <input name="key" className={inputClass} />
       </Field>
       <Field label="API secret">
-        <input readOnly type="password" defaultValue="secret" className={inputClass} />
+        <input name="secret" type="password" className={inputClass} autoComplete="off" />
       </Field>
     </SettingsForm>
   );

@@ -3,18 +3,22 @@ import { SettingsForm } from "@/components/settings-form";
 
 export default function Page() {
   return (
-    <SettingsForm title="Setting email">
+    <SettingsForm
+      namespace="email"
+      title="Setting email"
+      notice="SMTP tersimpan. Pengiriman email belum diaktifkan sampai endpoint/kredensial diverifikasi."
+    >
       <Field label="SMTP host">
-        <input className={inputClass} />
+        <input name="host" className={inputClass} />
       </Field>
       <Field label="Port">
-        <input defaultValue="587" className={inputClass} />
+        <input name="port" defaultValue="587" className={inputClass} />
       </Field>
       <Field label="Email">
-        <input type="email" className={inputClass} />
+        <input name="user" type="email" className={inputClass} />
       </Field>
       <Field label="Password">
-        <input type="password" className={inputClass} />
+        <input name="password" type="password" className={inputClass} autoComplete="off" />
       </Field>
     </SettingsForm>
   );

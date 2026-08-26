@@ -1,17 +1,19 @@
-import { DataTable } from "@/components/data-table";
-import { PageHeader, Panel } from "@/components/ui";
-import { calledStations } from "@/lib/mock-data";
+import { JsonSettingList } from "@/components/json-setting-list";
 
 export default function Page() {
   return (
-    <div>
-      <PageHeader title="Called station" description="Batasi login ke server hotspot/PPPoE tertentu." />
-      <Panel>
-        <DataTable
-          headers={["Tipe", "NAS", "Nama server"]}
-          rows={calledStations.map((row) => [row.type, row.nas, row.name])}
-        />
-      </Panel>
-    </div>
+    <JsonSettingList
+      title="Called station"
+      description="Daftar server hotspot/PPPoE. Tersimpan di AppSetting, bukan mock."
+      settingKey="called_stations"
+      columns={["Tipe", "NAS", "Nama server"]}
+      blank={() => ({ type: "ppp", nas: "", name: "" })}
+      toRow={(row) => [row.type, row.nas, row.name]}
+      fields={[
+        { name: "type", label: "Tipe" },
+        { name: "nas", label: "NAS" },
+        { name: "name", label: "Nama server" },
+      ]}
+    />
   );
 }

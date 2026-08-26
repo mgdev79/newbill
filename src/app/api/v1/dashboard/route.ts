@@ -59,7 +59,13 @@ export async function GET() {
       take: 20,
     }),
     prisma.invoice.aggregate({
-      where: { status: "paid", createdAt: { gte: today } },
+      where: {
+        status: "paid",
+        OR: [
+          { paidAt: { gte: today } },
+          { AND: [{ paidAt: null }, { createdAt: { gte: today } }] },
+        ],
+      },
       _sum: { amount: true },
     }),
     prisma.customer.count({ where: { kind: "hotspot" } }),

@@ -134,10 +134,28 @@ function mapInvoice(inv: {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
+  const q = url.searchParams.get("q")?.trim();
+  const status = url.searchParams.get("status");
+  const statuses = status
+    ? status.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
   const rows = await prisma.customer.findMany({
-    where: kind ? { kind } : undefined,
+    where: {
+      ...(kind ? { kind } : {}),
+      ...(statuses.length ? { status: { in: statuses } } : {}),
+      ...(q
+        ? {
+            OR: [
+              { customerCode: { contains: q } },
+              { username: { contains: q } },
+              { name: { contains: q } },
+            ],
+          }
+        : {}),
+    },
     include: { plan: true, nas: true },
     orderBy: { name: "asc" },
+    take: q ? 20 : undefined,
   });
   return NextResponse.json({ rows: rows.map(mapCustomer) });
 }
@@ -286,6 +304,7 @@ export async function POST(request: Request) {
           method: "Manual",
           payMode,
           subscriptionType,
+          paidAt: invoiceStatus === "paid" ? now : null,
         },
       });
 

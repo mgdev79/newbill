@@ -23,6 +23,12 @@ export async function PATCH(
     data: {
       status,
       ...(typeof body.method === "string" ? { method: body.method } : {}),
+      paidAt:
+        status === "paid"
+          ? existing.paidAt ?? new Date()
+          : status === "unpaid" || status === "void"
+            ? null
+            : existing.paidAt,
     },
     include: { customer: true },
   });

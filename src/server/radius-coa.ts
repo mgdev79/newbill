@@ -3,7 +3,7 @@ import { createSocket } from "node:dgram";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getRadiusCoaPort } from "@/server/radius-engine";
-import { ATTR, md5 } from "@/server/radius/codec";
+import { ATTR, md5 } from "@/lib/radius-codec";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
 

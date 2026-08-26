@@ -11,8 +11,7 @@
     "test:coa": "tsx --tsconfig tsconfig.json scripts/radius-coa-auth-test.ts",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma db push --force-reset && prisma db seed",
-    "radius": "node -e \"console.error('npm run radius dinonaktifkan. Auth UDP dipegang FreeRADIUS. Jalankan npm run dev atau npm run start.'); process.exit(1)\""
+    "db:reset": "prisma db push --force-reset && prisma db seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { parseNasBody, toPublicNas } from "@/lib/nas-dto";
+import { parseNasBody } from "@/lib/nas-dto";
+import { mergeNasPublic, nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
+import { syncNasByRecord } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   const rows = await prisma.nas.findMany({ orderBy: { name: "asc" } });
+  const index = await nasPortsIndex();
   return NextResponse.json({
-    rows: rows.map(toPublicNas),
+    rows: rows.map((row) => mergeNasPublic(row, index)),
     meta: {
-      radiusAuthPort: Number(process.env.RADIUS_AUTH_PORT ?? 1812),
-      radiusAcctPort: Number(process.env.RADIUS_ACCT_PORT ?? 1813),
-      radiusIncomingPort: Number(process.env.RADIUS_INCOMING_PORT ?? 3799),
+      radiusIncomingPort: radiusIncomingPort(),
       suggestedRadiusIp: process.env.RADIUS_PUBLIC_IP ?? "",
     },
   });
@@ -55,5 +56,19 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ row: toPublicNas(row) }, { status: 201 });
+  let radius: unknown = undefined;
+  try {
+    radius = await syncNasByRecord(row);
+  } catch (error) {
+    radius = {
+      skipped: false,
+      provisionError: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const index = await nasPortsIndex();
+  return NextResponse.json(
+    { row: mergeNasPublic(row, index), radius },
+    { status: 201 },
+  );
 }

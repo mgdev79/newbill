@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCompanyProfile } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { removeRadiusUsername } from "@/server/freeradius-sync";
+import { syncCustomerById } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
 
@@ -48,9 +50,24 @@ export async function PATCH(
           ? { bindOnLogin: body.bindOnLogin }
           : {}),
         ...(typeof body.owner === "string" ? { owner: body.owner } : {}),
+        ...(typeof body.dueAt === "string" && body.dueAt
+          ? { dueAt: new Date(body.dueAt) }
+          : {}),
       },
       include: { plan: true, nas: true },
     });
+    let radius: unknown = undefined;
+    try {
+      radius = await syncCustomerById(row.id, {
+        previousUsername: existing.username,
+        disconnectIfBlocked: true,
+      });
+    } catch (error) {
+      radius = {
+        radiusSync: "error",
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
     return NextResponse.json({
       row: {
         id: row.id,
@@ -64,6 +81,7 @@ export async function PATCH(
         status: row.status,
         kind: row.kind,
       },
+      radius,
     });
   } catch {
     return NextResponse.json(
@@ -151,4 +169,31 @@ export async function GET(
 
   const company = await getCompanyProfile();
   return NextResponse.json({ row: base, invoice, company });
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  const existing = await prisma.customer.findUnique({ where: { id } });
+  if (!existing) {
+    return NextResponse.json({ error: "Pelanggan tidak ditemukan." }, { status: 404 });
+  }
+  await prisma.customer.delete({ where: { id } });
+  try {
+    await removeRadiusUsername(existing.username);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: true,
+        radius: {
+          radiusSync: "error",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      },
+      { status: 200 },
+    );
+  }
+  return new NextResponse(null, { status: 204 });
 }

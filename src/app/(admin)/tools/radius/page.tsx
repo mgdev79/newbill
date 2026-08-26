@@ -37,7 +37,7 @@ export default function Page() {
     <div>
       <PageHeader
         title="Tes RADIUS"
-        description="Authorize ke engine AAA Newbill. Secret UDP: testing123, port 1812/1813."
+        description="Preview kebijakan AAA dari SQLite (bukan paket UDP). Auth live: FreeRADIUS di 192.168.20.5."
       />
       <Panel>
         <div className="grid max-w-lg gap-3">
@@ -66,9 +66,8 @@ export default function Page() {
           </div>
         ) : null}
         <p className="mt-4 text-xs text-slate-500">
-          Akun uji: budi.s / agus.w (accept), siti.a (isolir 64k), dewi.l (reject
-          disabled), rudi.h (reject pending). Password semua: radius123. Voucher:
-          ARIY-8K2P. MAC budi.s harus 4C:5E:0C:11:22:33 (sudah diisi default).
+          Tes ini membaca Customer/Voucher di SQLite (kebijakan yang akan di-sync ke radcheck/radreply).
+          Paket UDP 1812/1813 dijawab FreeRADIUS, bukan <code>npm run radius</code>.
         </p>
       </Panel>
     </div>

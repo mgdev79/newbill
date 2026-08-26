@@ -77,6 +77,10 @@ export function NasForm({ nasId }: { nasId?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [test, setTest] = useState<TestResult | null>(null);
   const [hasApiPassword, setHasApiPassword] = useState(false);
+  const [radiusPorts, setRadiusPorts] = useState<{ auth: number | null; acct: number | null }>({
+    auth: null,
+    acct: null,
+  });
 
   useEffect(() => {
     void (async () => {
@@ -103,6 +107,10 @@ export function NasForm({ nasId }: { nasId?: string }) {
       const data = (await response.json()) as { row: NasPublic };
       const row = data.row;
       setHasApiPassword(row.hasApiPassword);
+      setRadiusPorts({
+        auth: row.radiusAuthPort,
+        acct: row.radiusAcctPort,
+      });
       setForm({
         name: row.name,
         ip: row.ip,
@@ -204,7 +212,7 @@ export function NasForm({ nasId }: { nasId?: string }) {
         description="Isi koneksi API, tes ke MikroTik, simpan ke database. Skrip RouterOS lewat Script Generator."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <ScriptGeneratorButton radiusAddressOverride={form.radiusAddress} />
+            <ScriptGeneratorButton nasId={nasId} radiusAddressOverride={form.radiusAddress} />
             <Link href="/nas" className="text-sm text-slate-600 hover:underline">
               Kembali ke daftar
             </Link>
@@ -290,6 +298,19 @@ export function NasForm({ nasId }: { nasId?: string }) {
               placeholder="IP PC / VPS yang menjalankan Newbill"
             />
           </Field>
+          {nasId ? (
+            <Field label="Port RADIUS (FreeRADIUS)">
+              <input
+                className={inputClass}
+                readOnly
+                value={
+                  radiusPorts.auth && radiusPorts.acct
+                    ? `auth ${radiusPorts.auth} / acct ${radiusPorts.acct}`
+                    : "Belum dialokasi (simpan ulang saat MySQL radius terhubung)"
+                }
+              />
+            </Field>
+          ) : null}
           <Field label="Timezone">
             <select
               value={form.timezone}

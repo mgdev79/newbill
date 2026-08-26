@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { parseNasBody, toPublicNas } from "@/lib/nas-dto";
+import { parseNasBody } from "@/lib/nas-dto";
+import { mergeNasPublic, nasPortsIndex } from "@/server/nas-radius-view";
+import { removeNasByRecord, syncNasByRecord } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
 
@@ -11,7 +13,8 @@ export async function GET(
   const { id } = await context.params;
   const row = await prisma.nas.findUnique({ where: { id } });
   if (!row) return NextResponse.json({ error: "Router tidak ditemukan." }, { status: 404 });
-  return NextResponse.json({ row: toPublicNas(row) });
+  const index = await nasPortsIndex();
+  return NextResponse.json({ row: mergeNasPublic(row, index) });
 }
 
 export async function PATCH(
@@ -60,7 +63,18 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json({ row: toPublicNas(row) });
+  let radius: unknown = undefined;
+  try {
+    radius = await syncNasByRecord(row, { name: existing.name, ip: existing.ip });
+  } catch (error) {
+    radius = {
+      skipped: false,
+      provisionError: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const index = await nasPortsIndex();
+  return NextResponse.json({ row: mergeNasPublic(row, index), radius });
 }
 
 export async function DELETE(
@@ -68,6 +82,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  const existing = await prisma.nas.findUnique({ where: { id } });
   const groups = await prisma.profileGroup.count({ where: { nasId: id } });
   if (groups > 0) {
     return NextResponse.json(
@@ -76,5 +91,12 @@ export async function DELETE(
     );
   }
   await prisma.nas.delete({ where: { id } });
+  if (existing) {
+    try {
+      await removeNasByRecord({ name: existing.name, ip: existing.ip });
+    } catch (error) {
+      console.error("[freeradius] hapus NAS:", error);
+    }
+  }
   return new NextResponse(null, { status: 204 });
 }

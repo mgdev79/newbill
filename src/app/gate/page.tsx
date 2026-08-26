@@ -32,7 +32,7 @@ export default function GatePage() {
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Pintu uji coba</h1>
         <p className="mt-2 text-sm text-slate-600">
           Tiga portal terpisah. Pastikan <code className="rounded bg-slate-200 px-1">npm run dev</code>{" "}
-          dan <code className="rounded bg-slate-200 px-1">npm run radius</code> berjalan.
+          berjalan. RADIUS UDP dipegang FreeRADIUS, bukan npm run radius.
         </p>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {portals.map((portal) => (

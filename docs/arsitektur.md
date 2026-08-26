@@ -1,25 +1,22 @@
 # Arsitektur (ringkas)
 
-Sumber kebenaran: database Prisma (`prisma/dev.db`). RADIUS tidak menyimpan user sendiri.
+Sumber kebenaran bisnis: Prisma SQLite (`prisma/dev.db`). Auth/acct UDP: **FreeRADIUS 3** + MySQL `radius` di 192.168.20.5.
 
 ## Alur login
 
-1. MikroTik Access-Request UDP `1812` (secret `testing123`)
-   atau POST `/api/radius/authorize`
-2. `src/server/aaa.ts` baca `Customer` / `Voucher`
-3. Accept: Mikrotik-Rate-Limit, Mikrotik-Group, Framed-Pool, Framed-IP
-4. Isolir: `64k/64k` + group `isolir`
-5. Accounting UDP `1813` atau POST `/api/radius/accounting` → `RadAcct`
+1. Operator menambah NAS / Customer / Voucher di panel Newbill
+2. `src/server/freeradius-sync.ts` menulis `radcheck` + `radreply` (+ upsert `nas` + alokasi port 7100+)
+3. MikroTik Access-Request ke **port unik NAS** (bukan 1812 global)
+4. FreeRADIUS Accept: Mikrotik-Rate-Limit, Mikrotik-Group, Framed-Pool, Framed-IP
+5. Isolir: `64k/64k` + group `isolir` (job `/api/v1/jobs/isolir` + CoA Disconnect)
 
 ## Status pelanggan
 
-| Status | RADIUS |
+| Status | FreeRADIUS |
 |---|---|
-| active | Accept plan normal |
-| isolated / due lewat | Accept isolir |
-| pending / disabled | Reject |
-| MAC bind salah / shared users | Reject |
+| active | radcheck + radreply paket normal |
+| isolated / due lewat | Accept isolir 64k/64k |
+| pending / disabled | tidak ada radcheck (unknown user) |
+| voucher used / expired | radcheck dihapus |
 
-Password seed: `radius123`. Voucher uji: `ARIY-8K2P`.
-
-Diagram ER interaktif: salinan di `docs/ppp-er-api.canvas.tsx` (buka di Cursor Canvas).
+`POST /api/radius/authorize` hanya preview kebijakan SQLite. Jangan jalankan `npm run radius` (rebutan port dengan FreeRADIUS).

@@ -6,6 +6,7 @@ import {
   splitInclusiveTax,
 } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { syncCustomerById } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
 
@@ -292,11 +293,21 @@ export async function POST(request: Request) {
     });
 
     const company = await getCompanyProfile();
+    let radiusSync: unknown = undefined;
+    try {
+      radiusSync = await syncCustomerById(result.row.id);
+    } catch (error) {
+      radiusSync = {
+        radiusSync: "error",
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
     return NextResponse.json(
       {
         row: mapCustomer(result.row),
         invoice: mapInvoice(result.invoice),
         company,
+        radius: radiusSync,
       },
       { status: 201 },
     );

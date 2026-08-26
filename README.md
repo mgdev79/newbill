@@ -1,16 +1,12 @@
 # Newbill
 
-Satu folder: frontend, API, RADIUS, dan database.
-
-Lokasi: `C:\Users\Dev\Documents\newbill`
+Panel billing ISP (Next.js) + database bisnis Prisma/SQLite. Autentikasi UDP RADIUS dipegang **FreeRADIUS + MySQL** di mesin yang sama (bukan `npm run radius`).
 
 ```
 newbill/
-  src/app/              UI + API
-  src/server/           AAA + RADIUS UDP
-  prisma/               SQLite
-  scripts/              npm run radius
-  docs/                 arsitektur
+  src/app/                 UI + API
+  src/server/              FreeRADIUS sync, CoA, isolir job
+  prisma/                  SQLite bisnis
 ```
 
 ```bash
@@ -21,13 +17,12 @@ npx prisma db seed
 npm run dev
 ```
 
-Terminal lain: `npm run radius`
+Isi `FREERADIUS_DB_URL` di `.env` (lihat `.env.example`).
 
-- UI: http://localhost:3000 (atau 3001 jika 3000 terpakai)
-- Tes AAA: /tools/radius
-- UDP: 1812 auth, 1813 acct, secret `testing123`
-- Password uji: `radius123`
+- UI: http://localhost:3000
+- Isolir due: `GET/POST /api/v1/jobs/isolir` (juga scheduler 5 menit saat `next start`)
+- Resync penuh: `POST /api/v1/jobs/radius-resync`
 
-MikroTik: `/radius add address=<IP_PC> secret=testing123 service=ppp,hotspot timeout=2s`
+MikroTik: pakai Script Generator per NAS (port auth/acct unik dari tabel `nas` MySQL).
 
 Lihat `docs/isi-folder.md` dan `docs/arsitektur.md`.

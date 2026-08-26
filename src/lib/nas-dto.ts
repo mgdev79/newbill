@@ -23,9 +23,14 @@ export type NasPublic = {
   enableHotspot: boolean;
   lastSeenAt: string | null;
   lastError: string;
+  radiusAuthPort: number | null;
+  radiusAcctPort: number | null;
 };
 
-export function toPublicNas(row: Nas): NasPublic {
+export function toPublicNas(
+  row: Nas,
+  ports?: { radiusAuthPort?: number | null; radiusAcctPort?: number | null },
+): NasPublic {
   return {
     id: row.id,
     name: row.name,
@@ -49,6 +54,8 @@ export function toPublicNas(row: Nas): NasPublic {
     enableHotspot: row.enableHotspot,
     lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
     lastError: row.lastError,
+    radiusAuthPort: ports?.radiusAuthPort ?? null,
+    radiusAcctPort: ports?.radiusAcctPort ?? null,
   };
 }
 

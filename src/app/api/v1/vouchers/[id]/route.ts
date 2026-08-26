@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { removeVoucherRadius, syncVoucherById } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
 
@@ -30,8 +31,19 @@ export async function PATCH(
     },
   });
 
+  let radius: unknown = undefined;
+  try {
+    radius = await syncVoucherById(row.id);
+  } catch (error) {
+    radius = {
+      radiusSync: "error",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+
   return NextResponse.json({
     row: { id: row.id, code: row.code, enabled: row.enabled, owner: row.owner },
+    radius,
   });
 }
 
@@ -40,6 +52,14 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  const existing = await prisma.voucher.findUnique({ where: { id } });
   await prisma.voucher.delete({ where: { id } }).catch(() => null);
+  if (existing) {
+    try {
+      await removeVoucherRadius(existing.code);
+    } catch (error) {
+      console.error("[freeradius] hapus voucher:", error);
+    }
+  }
   return new NextResponse(null, { status: 204 });
 }

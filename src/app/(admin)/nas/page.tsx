@@ -53,7 +53,7 @@ export default function NasPage() {
     <div>
       <PageHeader
         title="Router NAS"
-        description="Daftar MikroTik. Secret dan password API tidak ditampilkan."
+        description="Koneksi API MikroTik. Port RADIUS unik per router diisi otomatis oleh FreeRADIUS."
         actions={
           <div className="flex flex-wrap gap-2">
             <ScriptGeneratorButton />
@@ -70,13 +70,15 @@ export default function NasPage() {
       ) : null}
       <Panel title="Daftar router">
         <DataTable
-          headers={["Nama", "IP", "Port", "SSL", "Timezone", "Layanan", "Koneksi", ""]}
+          headers={["Nama", "IP", "API", "RADIUS auth/acct", "SSL", "Layanan", "Koneksi", ""]}
           rows={rows.map((row) => [
             row.name,
             row.ip,
             String(row.apiPort),
+            row.radiusAuthPort && row.radiusAcctPort
+              ? `${row.radiusAuthPort}/${row.radiusAcctPort}`
+              : "—",
             row.useSsl ? "API-SSL" : "API",
-            row.timezone,
             [row.enablePpp ? "PPP" : null, row.enableHotspot ? "HS" : null]
               .filter(Boolean)
               .join(", ") || "—",

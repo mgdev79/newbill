@@ -19,6 +19,21 @@ type VpnRow = {
   serverHost: string;
   type: string;
   innerRadiusIp: string;
+  note?: string;
+};
+
+type NasListener = {
+  id: string;
+  name: string;
+  ip: string;
+  radiusSecret: string;
+  radiusAuthPort: number;
+  radiusAcctPort: number;
+  radiusIncomingPort: number;
+  enablePpp: boolean;
+  enableHotspot: boolean;
+  apiUser: string;
+  apiPassword: string;
 };
 
 type Creds = {
@@ -26,9 +41,8 @@ type Creds = {
   apiPassword: string;
   radiusSecret: string;
   radiusAddress: string;
-  radiusAuthPort: number;
-  radiusAcctPort: number;
   radiusIncomingPort: number;
+  nasListeners: NasListener[];
   vpnAccounts: VpnRow[];
 };
 
@@ -36,15 +50,18 @@ export function ScriptGeneratorModal({
   open,
   onClose,
   radiusAddressOverride,
+  nasId,
 }: {
   open: boolean;
   onClose: () => void;
   radiusAddressOverride?: string;
+  nasId?: string;
 }) {
   const [tab, setTab] = useState<"vpn" | "radius">("vpn");
   const [ros, setRos] = useState<RosVersion>("v6");
   const [creds, setCreds] = useState<Creds | null>(null);
   const [vpnId, setVpnId] = useState("");
+  const [selectedNasId, setSelectedNasId] = useState(nasId ?? "");
   const [vpnType, setVpnType] = useState<VpnType>("l2tp");
   const [copied, setCopied] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -60,18 +77,22 @@ export function ScriptGeneratorModal({
   async function load() {
     const response = await fetch("/api/v1/script-generator");
     const data = (await response.json()) as Creds;
-    setCreds(data);
+    const listeners = data.nasListeners ?? [];
+    setCreds({ ...data, nasListeners: listeners });
     if (!vpnId && data.vpnAccounts[0]) {
       const first = data.vpnAccounts[0];
       setVpnId(first.id);
       setVpnType((first.type as VpnType) || "l2tp");
     }
+    const preferred = nasId || selectedNasId || listeners[0]?.id || "";
+    if (preferred) setSelectedNasId(preferred);
   }
 
   useEffect(() => {
     if (open) void load();
   }, [open]);
 
+  const nas = creds?.nasListeners.find((row) => row.id === selectedNasId);
   const account = creds?.vpnAccounts.find((row) => row.id === vpnId);
   const radiusAddress =
     (radiusAddressOverride && radiusAddressOverride.trim()) ||
@@ -91,20 +112,25 @@ export function ScriptGeneratorModal({
   }, [account, ros, vpnType]);
 
   const radiusScript = useMemo(() => {
-    if (!creds) return "";
+    if (!nas) {
+      return ':put "Pilih NAS dulu. Port auth/acct diambil dari MySQL FreeRADIUS."';
+    }
+    if (!nas.radiusAuthPort || !nas.radiusAcctPort) {
+      return `:put "NAS ${nas.name} belum punya port RADIUS. Simpan router saat FREERADIUS_DB_URL terhubung."`;
+    }
     return generateRadiusScript({
       ros,
       radiusAddress,
-      radiusSecret: creds.radiusSecret,
-      radiusAuthPort: creds.radiusAuthPort,
-      radiusAcctPort: creds.radiusAcctPort,
-      radiusIncomingPort: creds.radiusIncomingPort,
-      apiUser: creds.apiUser,
-      apiPassword: creds.apiPassword,
-      enablePpp: true,
-      enableHotspot: true,
+      radiusSecret: nas.radiusSecret || creds?.radiusSecret || "testing123",
+      radiusAuthPort: nas.radiusAuthPort,
+      radiusAcctPort: nas.radiusAcctPort,
+      radiusIncomingPort: nas.radiusIncomingPort || creds?.radiusIncomingPort || 3799,
+      apiUser: nas.apiUser || creds?.apiUser || "newbill",
+      apiPassword: nas.apiPassword || creds?.apiPassword || "",
+      enablePpp: nas.enablePpp,
+      enableHotspot: nas.enableHotspot,
     });
-  }, [creds, radiusAddress, ros]);
+  }, [creds, nas, radiusAddress, ros]);
 
   const script = tab === "vpn" ? vpnScript : radiusScript;
 
@@ -278,18 +304,32 @@ export function ScriptGeneratorModal({
           ) : null}
         </div>
       ) : (
-        <div className="space-y-2 text-sm">
+        <div className="space-y-3 text-sm">
+          <Field label="NAS (port UDP unik dari FreeRADIUS)">
+            <select
+              className={inputClass}
+              value={selectedNasId}
+              onChange={(event) => setSelectedNasId(event.target.value)}
+            >
+              <option value="">- Pilih router -</option>
+              {(creds?.nasListeners ?? []).map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name} · {row.ip} · auth {row.radiusAuthPort || "—"} / acct{" "}
+                  {row.radiusAcctPort || "—"}
+                </option>
+              ))}
+            </select>
+          </Field>
           <p>
-            Username API = <strong>{creds?.apiUser ?? "…"}</strong>
+            Username API = <strong>{nas?.apiUser ?? creds?.apiUser ?? "…"}</strong>
           </p>
           <p>
-            Password API &amp; Secret Radius = <strong>{creds?.apiPassword ?? "…"}</strong>
+            Secret RADIUS = <strong>{nas?.radiusSecret || creds?.radiusSecret || "…"}</strong>
           </p>
-          {creds && creds.radiusSecret !== creds.apiPassword ? (
-            <p>
-              Secret Radius = <strong>{creds.radiusSecret}</strong>
-            </p>
-          ) : null}
+          <p className="text-xs text-slate-500">
+            Auth {nas?.radiusAuthPort || "—"} · Acct {nas?.radiusAcctPort || "—"} · CoA{" "}
+            {nas?.radiusIncomingPort || creds?.radiusIncomingPort || 3799}
+          </p>
           <p className="text-xs text-slate-500">
             Address RADIUS di skrip: {radiusAddress || "(isi RADIUS_PUBLIC_IP atau form tambah router)"}
           </p>
@@ -327,8 +367,10 @@ export function ScriptGeneratorModal({
 
 export function ScriptGeneratorButton({
   radiusAddressOverride,
+  nasId,
 }: {
   radiusAddressOverride?: string;
+  nasId?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -338,6 +380,7 @@ export function ScriptGeneratorButton({
         open={open}
         onClose={() => setOpen(false)}
         radiusAddressOverride={radiusAddressOverride}
+        nasId={nasId}
       />
     </>
   );

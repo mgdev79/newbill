@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { syncVoucherById } from "@/server/radius-hooks";
 import {
   generateVoucherCode,
   parseValidityToExpiry,
@@ -156,6 +157,13 @@ export async function POST(request: Request) {
         include: { plan: true, nas: true },
       });
       created.push(mapRow(row));
+      try {
+        await syncVoucherById(row.id);
+      } catch (error) {
+        errors.push(
+          `RADIUS ${code}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     } catch {
       errors.push(`Bentrok kode ${code}`);
     }

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { customerRadiusPolicy, voucherRadiusPolicy } from "@/server/radius-policy";
 
 export type RadiusRequest = {
   username: string;
@@ -10,9 +11,9 @@ export type RadiusRequest = {
 
 export type RadiusReply = {
   "Mikrotik-Rate-Limit"?: string;
-  "Framed-IP-Address"?: string;
-  "Framed-Pool"?: string;
   "Mikrotik-Group"?: string;
+  "Framed-Pool"?: string;
+  "Framed-IP-Address"?: string;
   "Session-Timeout"?: string;
 };
 
@@ -30,6 +31,10 @@ async function log(username: string, result: string, message: string, nasIp?: st
   });
 }
 
+/**
+ * Preview kebijakan AAA (SQLite) untuk /tools/radius.
+ * Auth UDP live dipegang FreeRADIUS; fungsi ini tidak menulis radcheck.
+ */
 export async function authorize(input: RadiusRequest): Promise<AuthorizeResult> {
   const username = input.username.trim();
   const customer = await prisma.customer.findUnique({
@@ -42,13 +47,12 @@ export async function authorize(input: RadiusRequest): Promise<AuthorizeResult> 
       await log(username, "reject", "Password salah", input.nasIp);
       return { accept: false, reason: "bad password", username };
     }
-    if (customer.status === "pending" || customer.status === "disabled") {
-      await log(username, "reject", `Status ${customer.status}`, input.nasIp);
-      return { accept: false, reason: `status ${customer.status}`, username };
-    }
 
-    const isolated =
-      customer.status === "isolated" || customer.dueAt.getTime() < Date.now();
+    const policy = customerRadiusPolicy(customer);
+    if (!policy.allow) {
+      await log(username, "reject", policy.reason, input.nasIp);
+      return { accept: false, reason: policy.reason, username };
+    }
 
     if (customer.bindOnLogin) {
       const mac = normalizeMac(input.callingStationId);
@@ -71,18 +75,13 @@ export async function authorize(input: RadiusRequest): Promise<AuthorizeResult> 
       return { accept: false, reason: "simultaneous use", username };
     }
 
-    const bw = customer.plan.bandwidth;
-    const reply: RadiusReply = isolated
-      ? { "Mikrotik-Rate-Limit": "64k/64k", "Mikrotik-Group": "isolir" }
-      : {
-          "Mikrotik-Rate-Limit": `${bw.maxUp}/${bw.maxDown}`,
-          "Mikrotik-Group": customer.plan.group.name,
-          "Framed-Pool": customer.plan.group.pool,
-        };
-    if (customer.ip) reply["Framed-IP-Address"] = customer.ip;
-
-    await log(username, "accept", isolated ? "Accept isolir" : "Access-Accept", input.nasIp);
-    return { accept: true, reply, username, kind: customer.kind };
+    await log(
+      username,
+      "accept",
+      policy.isolated ? "Accept isolir" : "Access-Accept",
+      input.nasIp,
+    );
+    return { accept: true, reply: policy.reply, username, kind: policy.kind };
   }
 
   const voucher = await prisma.voucher.findUnique({
@@ -99,28 +98,15 @@ export async function authorize(input: RadiusRequest): Promise<AuthorizeResult> 
     await log(username, "reject", "Password voucher salah", input.nasIp);
     return { accept: false, reason: "bad password", username };
   }
-  if (!voucher.enabled) {
-    await log(username, "reject", "Voucher disabled", input.nasIp);
-    return { accept: false, reason: "disabled", username };
-  }
-  if (voucher.expiresAt.getTime() < Date.now()) {
-    await log(username, "reject", "Voucher expired", input.nasIp);
-    return { accept: false, reason: "expired", username };
+
+  const policy = voucherRadiusPolicy(voucher);
+  if (!policy.allow) {
+    await log(username, "reject", policy.reason, input.nasIp);
+    return { accept: false, reason: policy.reason, username };
   }
 
-  await prisma.voucher.update({ where: { id: voucher.id }, data: { used: true } });
-  const bw = voucher.plan.bandwidth;
   await log(username, "accept", "Voucher Accept", input.nasIp);
-  return {
-    accept: true,
-    username,
-    kind: voucher.kind,
-    reply: {
-      "Mikrotik-Rate-Limit": `${bw.maxUp}/${bw.maxDown}`,
-      "Mikrotik-Group": voucher.plan.group.name,
-      "Framed-Pool": voucher.plan.group.pool,
-    },
-  };
+  return { accept: true, reply: policy.reply, username, kind: policy.kind };
 }
 
 export async function accounting(input: {
@@ -160,6 +146,9 @@ export async function accounting(input: {
       },
       update: { stoppedAt: null, framedIp: input.framedIp ?? "" },
     });
+    if (voucher && !voucher.used) {
+      await prisma.voucher.update({ where: { id: voucher.id }, data: { used: true } });
+    }
     return { ok: true };
   }
 
@@ -176,9 +165,4 @@ export async function accounting(input: {
   return { ok: true };
 }
 
-export async function disconnectSession(sessionId: string) {
-  await prisma.radAcct.updateMany({
-    where: { sessionId, stoppedAt: null },
-    data: { stoppedAt: new Date() },
-  });
-}
+export { disconnectSession } from "@/server/radius-coa";

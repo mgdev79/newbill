@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getBillingTenant } from "@/lib/saas";
 import { gatewayCallbackUrl, tenantPublicOrigin } from "@/lib/tenant-host";
+import { settleGatewayPayment } from "@/server/gateway-settle";
 
 const SANDBOX = "https://sandbox.duitku.com/webapi/api/merchant";
 const PRODUCTION = "https://passport.duitku.com/webapi/api/merchant";
@@ -206,41 +207,11 @@ export async function duitkuTransactionStatus(merchantOrderId: string) {
 
 export async function settleDuitkuPayment(callback: DuitkuCallback) {
   const paid = callback.resultCode === "00";
-  const status = paid ? "paid" : "failed";
-  const note = `Duitku ${callback.reference || callback.merchantOrderId} · ${callback.paymentCode} · result ${callback.resultCode}`;
-
-  const txn = await prisma.paymentTxn.findUnique({ where: { ref: callback.merchantOrderId } });
-  if (txn) {
-    await prisma.paymentTxn.update({
-      where: { id: txn.id },
-      data: { status, channel: callback.paymentCode || txn.channel, note },
-    });
-  }
-
-  const invoice = await prisma.invoice.findUnique({
-    where: { number: callback.merchantOrderId },
-    include: { customer: true },
+  return settleGatewayPayment({
+    ref: callback.merchantOrderId,
+    paid,
+    channel: callback.paymentCode,
+    note: `Duitku ${callback.reference || callback.merchantOrderId} · ${callback.paymentCode} · result ${callback.resultCode}`,
+    method: "Duitku",
   });
-  if (invoice && paid && invoice.status !== "paid") {
-    await prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { status: "paid", method: "Duitku", paidAt: invoice.paidAt ?? new Date() },
-    });
-    if (invoice.customer.status === "isolated") {
-      await prisma.customer.update({
-        where: { id: invoice.customerId },
-        data: { status: "active", trxStatus: "paid", renewedAt: new Date() },
-      });
-    }
-  }
-
-  const order = await prisma.evoucherOrder.findUnique({ where: { id: callback.merchantOrderId } });
-  if (order) {
-    await prisma.evoucherOrder.update({
-      where: { id: order.id },
-      data: { status: paid ? "paid" : "failed", note },
-    });
-  }
-
-  return { paid, status };
 }

@@ -185,8 +185,8 @@ export function PaymentGatewayForm({ tenantCode }: { tenantCode: string }) {
             .
           </li>
           <li>
-            Duitku: inquiry + callback HMAC (docs.duitku.com) sudah aktif. Xendit / Midtrans / Nicepay
-            masih simpan kredensial saja.
+            Duitku, Xendit, Midtrans, dan Nicepay: inquiry + verifikasi callback sesuai dokumentasi
+            resmi masing-masing provider.
           </li>
         </ul>
 

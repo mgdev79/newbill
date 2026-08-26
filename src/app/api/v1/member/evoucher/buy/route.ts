@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyGateToken } from "@/lib/member-captcha";
-import { duitkuInquiry } from "@/server/duitku";
+import { createGatewayCharge } from "@/server/gateway-charge";
+import { getActiveGatewayProvider } from "@/server/gateway-settle";
 
 export const runtime = "nodejs";
 
@@ -74,15 +75,16 @@ export async function POST(request: Request) {
     },
   });
 
-  const inquiry = await duitkuInquiry({
-    merchantOrderId: row.id,
-    paymentAmount: amount,
-    paymentMethod: paymentChannel,
-    productDetails: `e-Voucher ${plan.name} x${qty}`,
+  const provider = await getActiveGatewayProvider();
+  const inquiry = await createGatewayCharge({
+    provider,
+    ref: row.id,
+    amount,
+    channel: paymentChannel,
+    description: `e-Voucher ${plan.name} x${qty}`,
+    customer,
     email: email || undefined,
-    phoneNumber: phone,
-    customerVaName: customer,
-    additionalParam: row.id,
+    phone,
   });
   if (inquiry.ok) {
     await prisma.paymentTxn.create({
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
         amount,
         channel: paymentChannel,
         status: "pending",
-        provider: "duitku",
+        provider,
         note: inquiry.reference,
       },
     }).catch(() => null);
@@ -122,10 +124,10 @@ export async function POST(request: Request) {
         error: inquiry.ok ? undefined : inquiry.error,
         instruction: inquiry.ok
           ? inquiry.paymentUrl
-            ? "Lanjutkan pembayaran di halaman Duitku."
+            ? `Lanjutkan pembayaran di halaman ${provider}.`
             : inquiry.vaNumber
               ? `Transfer VA ${inquiry.vaNumber}.`
-              : "Menunggu pembayaran Duitku."
+              : `Menunggu pembayaran ${provider}.`
           : inquiry.error,
       },
     },

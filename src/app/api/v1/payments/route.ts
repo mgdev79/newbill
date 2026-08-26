@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { duitkuInquiry } from "@/server/duitku";
+import { createGatewayCharge } from "@/server/gateway-charge";
+import { getActiveGatewayProvider, type GatewayProvider } from "@/server/gateway-settle";
 
 export const runtime = "nodejs";
 
@@ -70,13 +71,17 @@ export async function POST(request: Request) {
       },
     });
     let payment: { paymentUrl?: string; reference?: string; vaNumber?: string; error?: string } | undefined;
-    if (row.provider === "duitku") {
-      const inquiry = await duitkuInquiry({
-        merchantOrderId: row.ref,
-        paymentAmount: row.amount,
-        paymentMethod: row.channel || "SP",
-        productDetails: `Pembayaran ${row.ref}`,
-        customerVaName: row.customer || row.ref,
+    const provider = (row.provider === "manual"
+      ? await getActiveGatewayProvider()
+      : row.provider) as string;
+    if (provider === "duitku" || provider === "xendit" || provider === "midtrans" || provider === "nicepay") {
+      const inquiry = await createGatewayCharge({
+        provider: provider as GatewayProvider,
+        ref: row.ref,
+        amount: row.amount,
+        channel: row.channel,
+        description: `Pembayaran ${row.ref}`,
+        customer: row.customer,
       });
       if (inquiry.ok) {
         payment = {
@@ -86,7 +91,10 @@ export async function POST(request: Request) {
         };
         await prisma.paymentTxn.update({
           where: { id: row.id },
-          data: { note: [row.note, inquiry.reference].filter(Boolean).join(" · ") },
+          data: {
+            provider,
+            note: [row.note, inquiry.reference].filter(Boolean).join(" · "),
+          },
         });
       } else {
         payment = { error: inquiry.error };

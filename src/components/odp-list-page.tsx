@@ -26,8 +26,12 @@ export function OdpListPage() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const data = await fetch("/api/v1/odps").then((r) => r.json());
-    setRows(data.rows ?? []);
+    try {
+      const data = await fetch("/api/v1/odps").then((r) => r.json());
+      setRows(data.rows ?? []);
+    } catch {
+      setToast("Gagal memuat ODP.");
+    }
   }
 
   useEffect(() => {
@@ -64,7 +68,12 @@ export function OdpListPage() {
 
   async function remove(id: string) {
     if (!window.confirm("Hapus ODP ini?")) return;
-    await fetch(`/api/v1/odps/${id}`, { method: "DELETE" });
+    const response = await fetch(`/api/v1/odps/${id}`, { method: "DELETE" });
+    if (!response.ok) {
+      const data = (await response.json()) as { error?: string };
+      setToast(data.error ?? "Tidak bisa dihapus.");
+      return;
+    }
     await load();
   }
 

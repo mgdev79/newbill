@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button, Field, PageHeader, Panel, inputClass } from "@/components/ui";
 import { formatIdr } from "@/lib/utils";
@@ -49,20 +49,24 @@ export function PlanListPage({
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load() {
-    const [plans, bw, grp] = await Promise.all([
-      fetch(`/api/v1/plans?type=${type}`).then((r) => r.json()),
-      fetch("/api/v1/bandwidth").then((r) => r.json()),
-      fetch(`/api/v1/profile-groups?type=${type}`).then((r) => r.json()),
-    ]);
-    setRows(plans.rows ?? []);
-    setBandwidths(bw.rows ?? []);
-    setGroups(grp.rows ?? []);
-  }
+  const load = useCallback(async () => {
+    try {
+      const [plans, bw, grp] = await Promise.all([
+        fetch(`/api/v1/plans?type=${type}`).then((r) => r.json()),
+        fetch("/api/v1/bandwidth").then((r) => r.json()),
+        fetch(`/api/v1/profile-groups?type=${type}`).then((r) => r.json()),
+      ]);
+      setRows(plans.rows ?? []);
+      setBandwidths(bw.rows ?? []);
+      setGroups(grp.rows ?? []);
+    } catch {
+      setToast("Gagal memuat paket.");
+    }
+  }, [type]);
 
   useEffect(() => {
     void load();
-  }, [type]);
+  }, [load]);
 
   async function save() {
     setBusy(true);

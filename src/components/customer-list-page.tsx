@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Ban,
   Info,
@@ -178,16 +178,21 @@ export function CustomerListPage({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetch(`/api/v1/customers?kind=${kind}`).then((r) => r.json());
-    setRows(data.rows ?? []);
-    setLoading(false);
-  }
+    try {
+      const data = await fetch(`/api/v1/customers?kind=${kind}`).then((r) => r.json());
+      setRows(data.rows ?? []);
+    } catch {
+      setToast("Gagal memuat pelanggan.");
+    } finally {
+      setLoading(false);
+    }
+  }, [kind]);
 
   useEffect(() => {
     void load();
-  }, [kind]);
+  }, [load]);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {

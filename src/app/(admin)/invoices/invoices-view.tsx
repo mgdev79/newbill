@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button, PageHeader, Panel, StatusPill, inputClass } from "@/components/ui";
 import { formatDate, formatIdr } from "@/lib/utils";
@@ -29,7 +29,7 @@ export default function InvoicesPage({ period }: { period?: boolean }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const params = new URLSearchParams({ status });
     if (period) {
       params.set("from", from);
@@ -37,11 +37,11 @@ export default function InvoicesPage({ period }: { period?: boolean }) {
     }
     const data = await fetch(`/api/v1/invoices?${params}`).then((r) => r.json());
     setRows(data.rows ?? []);
-  }
+  }, [status, from, to, period]);
 
   useEffect(() => {
     void load();
-  }, [status, from, to, period]);
+  }, [load]);
 
   const selectedIds = useMemo(
     () => rows.filter((row) => selected[row.id]).map((row) => row.id),

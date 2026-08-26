@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button, PageHeader, Panel, StatCard } from "@/components/ui";
 
@@ -24,17 +24,17 @@ export function SessionsPage({
 }) {
   const [rows, setRows] = useState<SessionRow[]>([]);
 
-  async function load() {
+  const load = useCallback(async () => {
     const response = await fetch(`/api/v1/sessions?kind=${kind}`);
     const json = (await response.json()) as { rows: SessionRow[] };
     setRows(json.rows ?? []);
-  }
+  }, [kind]);
 
   useEffect(() => {
     void load();
     const timer = window.setInterval(() => void load(), 30_000);
     return () => window.clearInterval(timer);
-  }, [kind]);
+  }, [load]);
 
   return (
     <div>

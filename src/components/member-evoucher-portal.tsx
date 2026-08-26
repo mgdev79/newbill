@@ -263,6 +263,8 @@ export function MemberEvoucherPortal() {
         {!gated ? (
           <form onSubmit={onVerify} className="mt-5 space-y-4">
             <div className="text-center">
+              {/* Challenge image is a rotating data URL; next/image would cache it. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={captchaUrl}
                 alt="Verification Code"

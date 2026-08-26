@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Modal } from "@/components/modal";
 import { Button, Field, PageHeader, Panel, StatusPill, inputClass } from "@/components/ui";
@@ -34,19 +34,21 @@ export default function TenantsPage() {
     billingUrl: "",
   });
 
-  async function load() {
+  const load = useCallback(async () => {
     const [t, p] = await Promise.all([
       fetch("/api/v1/saas/tenants").then((r) => r.json()),
       fetch("/api/v1/saas/plans").then((r) => r.json()),
     ]);
     setRows(t.rows);
     setPlans(p.rows);
-    if (!form.planId && p.rows[0]) setForm((f) => ({ ...f, planId: p.rows[0].id }));
-  }
+    setForm((current) =>
+      current.planId || !p.rows[0] ? current : { ...current, planId: p.rows[0].id },
+    );
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   async function create() {
     setError(null);

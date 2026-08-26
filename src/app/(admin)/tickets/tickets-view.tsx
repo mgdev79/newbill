@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button, Field, PageHeader, Panel, StatusPill, inputClass } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
@@ -25,15 +25,15 @@ export default function TicketsPage({ filter }: { filter?: TicketStatus }) {
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     const params = filter ? `?status=${filter}` : "";
     const data = await fetch(`/api/v1/tickets${params}`).then((r) => r.json());
     setRows(data.rows ?? []);
-  }
+  }, [filter]);
 
   useEffect(() => {
     void load();
-  }, [filter]);
+  }, [load]);
 
   const title =
     filter === "open" ? "Tiket aktif" : filter === "closed" ? "Tiket ditutup" : "Semua tiket";

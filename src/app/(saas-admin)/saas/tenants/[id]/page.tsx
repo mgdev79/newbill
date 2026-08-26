@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button, Field, PageHeader, Panel, StatusPill, inputClass } from "@/components/ui";
 import { formatIdr } from "@/lib/utils";
@@ -74,7 +74,7 @@ export default function TenantDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [billingBound, setBillingBound] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     const [detail, planRes, serverRes, settingRes] = await Promise.all([
       fetch(`/api/v1/saas/tenants/${params.id}`).then((r) => r.json()),
       fetch("/api/v1/saas/plans").then((r) => r.json()),
@@ -90,12 +90,12 @@ export default function TenantDetailPage() {
     setPlans(planRes.rows);
     setServers(serverRes.rows);
     setBillingBound(settingRes.code === detail.row.code);
-    if (!serverId && serverRes.rows[0]) setServerId(serverRes.rows[0].id);
-  }
+    setServerId((current) => current || serverRes.rows[0]?.id || "");
+  }, [params.id]);
 
   useEffect(() => {
     void load();
-  }, [params.id]);
+  }, [load]);
 
   async function save() {
     if (!tenant) return;

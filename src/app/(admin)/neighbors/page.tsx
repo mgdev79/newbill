@@ -44,7 +44,12 @@ export default function Page() {
 
   async function remove(id: string) {
     if (!window.confirm("Hapus neighbor ini?")) return;
-    await fetch(`/api/v1/neighbors/${id}`, { method: "DELETE" });
+    const response = await fetch(`/api/v1/neighbors/${id}`, { method: "DELETE" });
+    if (!response.ok) {
+      const data = (await response.json()) as { error?: string };
+      setToast(data.error ?? "Tidak bisa dihapus.");
+      return;
+    }
     await load();
   }
 

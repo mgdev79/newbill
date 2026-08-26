@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { PageHeader, Panel, StatCard, inputClass } from "@/components/ui";
-import { formatDate, formatIdr } from "@/lib/utils";
+import { formatIdr } from "@/lib/utils";
 
 type Row = {
   id: string;

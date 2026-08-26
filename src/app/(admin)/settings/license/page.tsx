@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { LicenseInfoView, type LicensePayload } from "@/components/license-info-view";
 
 export default function LicensePage() {

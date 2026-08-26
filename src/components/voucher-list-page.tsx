@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { DataTable } from "@/components/data-table";
 import { Modal } from "@/components/modal";
 import { IconBtn, SortHead, TablePager, TableToolbar } from "@/components/table-kit";
@@ -111,20 +111,25 @@ export function VoucherListPage({
   const [lastBatch, setLastBatch] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetch(`/api/v1/vouchers?kind=${kind}`).then((r) => r.json());
-    const list = (data.rows ?? []) as Omit<Row, "seq">[];
-    setRows(list.map((row, index, arr) => ({ ...row, seq: arr.length - index })));
-    setLoading(false);
-  }
+    try {
+      const data = await fetch(`/api/v1/vouchers?kind=${kind}`).then((r) => r.json());
+      const list = (data.rows ?? []) as Omit<Row, "seq">[];
+      setRows(list.map((row, index, arr) => ({ ...row, seq: arr.length - index })));
+    } catch {
+      setError("Gagal memuat voucher.");
+    } finally {
+      setLoading(false);
+    }
+  }, [kind]);
 
   useEffect(() => {
     void load();
     void fetch(`/api/v1/vouchers/meta?kind=${kind}`)
       .then((r) => r.json())
       .then((data: Meta) => setMeta(data));
-  }, [kind]);
+  }, [kind, load]);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
@@ -262,7 +267,7 @@ export function VoucherListPage({
     setSortDir("asc");
   }
 
-  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editRow) return;
     const fd = new FormData(event.currentTarget);
@@ -738,7 +743,7 @@ export function VoucherListPage({
         }
       >
         {editRow ? (
-          <form id="voucher-edit-form" onSubmit={(e) => void saveEdit(e)} className="grid gap-3">
+          <form id="voucher-edit-form" onSubmit={(e) => void save(e)} className="grid gap-3">
             <Field label="Username">
               <input className={inputClass} value={editRow.code} readOnly />
             </Field>

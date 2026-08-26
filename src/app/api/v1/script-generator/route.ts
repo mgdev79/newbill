@@ -23,7 +23,7 @@ async function putSetting(key: string, value: string) {
 export async function GET() {
   let apiUser = await getSetting("nasApiUser", "");
   let apiPassword = await getSetting("nasApiPassword", "");
-  let radiusSecret = await getSetting("radiusSecret", process.env.RADIUS_SECRET ?? "testing123");
+  const radiusSecret = await getSetting("radiusSecret", process.env.RADIUS_SECRET ?? "testing123");
   if (!apiUser || !apiPassword) {
     apiUser = randomApiUser();
     apiPassword = radiusSecret;

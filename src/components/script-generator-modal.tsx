@@ -114,6 +114,8 @@ export function ScriptGeneratorModal({
 
   useEffect(() => {
     if (open) void load();
+    // load() seeds VPN/NAS dropdowns from the first response; deps would refetch on every dropdown change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const nas = creds?.nasListeners.find((row) => row.id === selectedNasId);

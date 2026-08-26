@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { engineFieldsFromEnv } from "../src/server/radius-engine";
+import { engineFieldsFromEnv } from "@/server/radius-engine";
 
 const prisma = new PrismaClient();
 const PASSWORD = "radius123";

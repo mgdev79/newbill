@@ -38,6 +38,8 @@ export function JsonSettingList<T extends { id: string }>({
   useEffect(() => {
     void load();
     setForm(blank() as Record<string, string>);
+    // blank() is an inline factory from each settings page; including it would retrigger load every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingKey]);
 
   async function persist(next: T[]) {

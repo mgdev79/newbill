@@ -18,6 +18,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [company, setCompany] = useState<ShellCompany>(fallbackCompany);
   const [alerts, setAlerts] = useState<ShellAlert[]>([]);
 
+  async function logout() {
+    await fetch("/api/v1/login", { method: "DELETE" });
+    window.location.href = "/login";
+  }
+
   useEffect(() => {
     void fetch("/api/v1/shell")
       .then((r) => r.json())
@@ -42,7 +47,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NavList />
           </div>
           <div className="border-t border-black/20 px-4 py-3 text-[11px] text-[#73879c]">
-            Masuk sebagai {company.staff}
+            <p>Masuk sebagai {company.staff}</p>
+            <button
+              type="button"
+              className="mt-1 text-left text-[#b8c7ce] hover:text-white"
+              onClick={() => void logout()}
+            >
+              Keluar
+            </button>
           </div>
         </aside>
 
@@ -58,6 +70,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               <BrandBlock />
               <div className="flex-1 overflow-y-auto py-2">
                 <NavList onNavigate={() => setMenuOpen(false)} />
+              </div>
+              <div className="border-t border-black/20 px-4 py-3 text-[11px] text-[#73879c]">
+                <p>Masuk sebagai {company.staff}</p>
+                <button
+                  type="button"
+                  className="mt-1 text-left text-[#b8c7ce] hover:text-white"
+                  onClick={() => void logout()}
+                >
+                  Keluar
+                </button>
               </div>
             </aside>
           </div>

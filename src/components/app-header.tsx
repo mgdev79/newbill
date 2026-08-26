@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Router } from "lucide-react";
+import { Bell, LogOut, Menu, Router } from "lucide-react";
 import { useShell } from "@/components/shell-context";
 import { formatDate } from "@/lib/utils";
 
 export function AppHeader() {
   const { setMenuOpen, noticeOpen, setNoticeOpen, company, alerts } = useShell();
+
+  async function logout() {
+    await fetch("/api/v1/login", { method: "DELETE" });
+    window.location.href = "/login";
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-[50px] items-center justify-between bg-[var(--lte-blue)] px-3 text-white shadow-sm">
@@ -40,6 +45,14 @@ export function AppHeader() {
         >
           Cek pemakaian
         </Link>
+        <button
+          type="button"
+          className="rounded p-1.5 text-white/90 hover:bg-white/10"
+          aria-label="Keluar"
+          onClick={() => void logout()}
+        >
+          <LogOut className="size-4" />
+        </button>
         <div className="relative">
           <button
             type="button"

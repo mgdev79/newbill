@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
+import { TENANT_COOKIE } from "@/lib/auth-cookies";
 
-export const TENANT_COOKIE = "nb_tenant";
+export { TENANT_COOKIE };
 export const BILLING_TENANT_SETTING = "billing_tenant_code";
 
 export async function getTenantSession() {

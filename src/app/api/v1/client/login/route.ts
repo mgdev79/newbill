@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { TENANT_COOKIE, publicTenant } from "@/lib/saas";
+import { TENANT_COOKIE, clearCookieOptions, cookieOptions } from "@/lib/auth-cookies";
+import { publicTenant } from "@/lib/saas";
 
 export const runtime = "nodejs";
 
@@ -21,16 +22,12 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ row: publicTenant(row) });
-  response.cookies.set(TENANT_COOKIE, row.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
+  response.cookies.set(TENANT_COOKIE, row.id, cookieOptions());
   return response;
 }
 
 export async function DELETE() {
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(TENANT_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  response.cookies.set(TENANT_COOKIE, "", clearCookieOptions());
   return response;
 }

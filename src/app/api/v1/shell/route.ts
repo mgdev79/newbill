@@ -1,11 +1,29 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getCompanyProfile } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { OPERATOR_COOKIE, OPERATOR_ENV_VALUE } from "@/lib/auth-cookies";
 
 export const runtime = "nodejs";
 
+async function staffLabel() {
+  const jar = await cookies();
+  const value = jar.get(OPERATOR_COOKIE)?.value;
+  if (value === OPERATOR_ENV_VALUE) {
+    return process.env.OPERATOR_ADMIN_USER ?? "admin";
+  }
+  if (value) {
+    const staff = await prisma.staffUser.findUnique({
+      where: { id: value },
+      select: { username: true },
+    });
+    if (staff) return staff.username;
+  }
+  return "admin";
+}
+
 export async function GET() {
-  const [company, alerts] = await Promise.all([
+  const [company, alerts, staff] = await Promise.all([
     getCompanyProfile(),
     prisma.customer.findMany({
       where: { status: { in: ["isolated", "disabled"] } },
@@ -19,12 +37,13 @@ export async function GET() {
       orderBy: { dueAt: "asc" },
       take: 20,
     }),
+    staffLabel(),
   ]);
   return NextResponse.json({
     company: {
       name: company.name,
       tenant: company.name,
-      staff: "admin",
+      staff,
     },
     alerts: alerts.map((row) => ({
       id: row.id,

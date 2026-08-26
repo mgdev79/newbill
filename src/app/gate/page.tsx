@@ -19,7 +19,7 @@ const portals = [
     href: "/login",
     title: "Billing Operator",
     desc: "Panel ISP: NAS, pelanggan, RADIUS, tagihan.",
-    creds: "admin / admin (dummy)",
+    creds: "StaffUser atau OPERATOR_ADMIN_*",
     tone: "bg-teal-900 text-teal-50 border-teal-800",
   },
 ];

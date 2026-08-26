@@ -65,7 +65,7 @@ export default function Page() {
     <div>
       <PageHeader
         title="Manajemen user"
-        description="Staff panel (admin/manager/operator). Password disimpan sebagai hash. Login panel masih memakai alur lama — user ini untuk inventaris & saldo reseller."
+        description="Staff panel (admin/manager/operator). Akun di sini dipakai untuk login operator. Password disimpan sebagai hash."
       />
       {toast ? (
         <p className="mb-3 rounded-sm border border-[#ebccd1] bg-[#f2dede] px-3 py-2 text-[13px] text-[#a94442]">

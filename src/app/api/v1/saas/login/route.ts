@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import {
+  SAAS_COOKIE,
+  clearCookieOptions,
+  cookieOptions,
+  hasSaasAdminCookie,
+} from "@/lib/auth-cookies";
 
 export const runtime = "nodejs";
 
-export const SAAS_COOKIE = "nb_saas_admin";
+export { SAAS_COOKIE };
 
 const SAAS_USER = process.env.SAAS_ADMIN_USER ?? "saas";
 const SAAS_PASS = process.env.SAAS_ADMIN_PASSWORD ?? "saas123";
@@ -14,23 +20,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Username atau password salah." }, { status: 401 });
   }
   const response = NextResponse.json({ ok: true, username: SAAS_USER });
-  response.cookies.set(SAAS_COOKIE, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
+  response.cookies.set(SAAS_COOKIE, "1", cookieOptions());
   return response;
 }
 
 export async function GET() {
   const jar = await cookies();
-  const ok = jar.get(SAAS_COOKIE)?.value === "1";
+  const ok = hasSaasAdminCookie(jar.get(SAAS_COOKIE)?.value);
   if (!ok) return NextResponse.json({ ok: false }, { status: 401 });
   return NextResponse.json({ ok: true, username: SAAS_USER });
 }
 
 export async function DELETE() {
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SAAS_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  response.cookies.set(SAAS_COOKIE, "", clearCookieOptions());
   return response;
 }

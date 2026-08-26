@@ -39,6 +39,79 @@ type Row = {
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
+type SortKey =
+  | "customerCode"
+  | "name"
+  | "serviceType"
+  | "plan"
+  | "ip"
+  | "odp"
+  | "renewedAt"
+  | "dueAt"
+  | "status"
+  | "owner"
+  | "renew"
+  | "aksi";
+
+function sortValue(row: Row, key: SortKey): string | number {
+  switch (key) {
+    case "customerCode":
+      return row.customerCode.toLowerCase();
+    case "name":
+      return row.name.toLowerCase();
+    case "serviceType":
+      return serviceBadge(row);
+    case "plan":
+      return row.plan.toLowerCase();
+    case "ip":
+      return (row.ip || "automatic").toLowerCase();
+    case "odp":
+      return (row.odp || "").toLowerCase();
+    case "renewedAt":
+    case "renew":
+      return row.renewedAt ? new Date(row.renewedAt).getTime() : 0;
+    case "dueAt":
+      return new Date(row.dueAt).getTime();
+    case "status":
+      return row.status.toLowerCase();
+    case "owner":
+      return (row.owner || "").toLowerCase();
+    case "aksi":
+      return row.name.toLowerCase();
+    default:
+      return "";
+  }
+}
+
+function SortHead({
+  label,
+  column,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  column: SortKey;
+  sortKey: SortKey | null;
+  sortDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sortKey === column;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(column)}
+      className="inline-flex items-center gap-1.5 font-semibold text-[#333]"
+    >
+      {label}
+      <span className="inline-flex flex-col -space-y-0.5 text-[8px] leading-none" aria-hidden>
+        <span className={active && sortDir === "asc" ? "text-[#444]" : "text-[#c5c5c5]"}>▲</span>
+        <span className={active && sortDir === "desc" ? "text-[#444]" : "text-[#c5c5c5]"}>▼</span>
+      </span>
+    </button>
+  );
+}
+
 function inThisMonth(iso: string | null | undefined) {
   if (!iso) return false;
   const d = new Date(iso);
@@ -97,6 +170,8 @@ export function CustomerListPage({
   const [query, setQuery] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [toast, setToast] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -132,13 +207,27 @@ export function CustomerListPage({
     );
   }, [query, rows]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const list = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      const av = sortValue(a, sortKey);
+      const bv = sortValue(b, sortKey);
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return list;
+  }, [filtered, sortKey, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   useEffect(() => {
     setPage(1);
-  }, [query, pageSize, kind]);
+  }, [query, pageSize, kind, sortKey, sortDir]);
 
   const selectedIds = useMemo(
     () => filtered.filter((row) => selected[row.id]).map((row) => row.id),
@@ -238,6 +327,15 @@ export function CustomerListPage({
   function scrollSearch() {
     setMenuOpen(false);
     document.getElementById("customer-search")?.focus();
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
   }
 
   const from = filtered.length ? (safePage - 1) * pageSize + 1 : 0;
@@ -475,18 +573,18 @@ export function CustomerListPage({
                   }}
                   aria-label="Pilih semua di halaman ini"
                 />,
-                "ID Pelanggan",
-                "Nama",
-                "Tipe Service",
-                "Paket Langganan",
-                "IP Address",
-                "ODP",
-                "Diperpanjang",
-                "Jatuh Tempo",
-                "Status",
-                "Owner Data",
-                "Renew | Print",
-                "Aksi",
+                <SortHead key="h-id" label="ID Pelanggan" column="customerCode" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-name" label="Nama" column="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-svc" label="Tipe Service" column="serviceType" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-plan" label="Paket Langganan" column="plan" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-ip" label="IP Address" column="ip" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-odp" label="ODP" column="odp" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-ren" label="Diperpanjang" column="renewedAt" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-due" label="Jatuh Tempo" column="dueAt" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-st" label="Status" column="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-own" label="Owner Data" column="owner" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-rp" label="Renew | Print" column="renew" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
+                <SortHead key="h-aksi" label="Aksi" column="aksi" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />,
               ]}
               rows={pageRows.map((row) => [
                 <input

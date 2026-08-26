@@ -71,11 +71,13 @@ export function StatCard({
   label,
   value,
   hint,
+  icon,
   tone = "slate",
 }: {
   label: string;
   value: string | number;
   hint?: string;
+  icon?: ReactNode;
   tone?: "slate" | "teal" | "amber" | "rose" | "sky" | "blue" | "green" | "aqua" | "yellow" | "red";
 }) {
   const tones: Record<string, { bar: string; icon: string }> = {
@@ -95,7 +97,7 @@ export function StatCard({
   return (
     <div className="flex min-h-[80px] overflow-hidden rounded-sm bg-white shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
       <div className={cn("flex w-[90px] shrink-0 items-center justify-center text-white", t.icon)}>
-        <span className="text-2xl font-light opacity-90">◆</span>
+        {icon ?? <span className="text-2xl font-light opacity-90">◆</span>}
       </div>
       <div className="flex flex-1 flex-col justify-center px-3 py-2">
         <p className="text-[12px] text-[var(--lte-muted)] uppercase">{label}</p>

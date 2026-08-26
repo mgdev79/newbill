@@ -139,25 +139,45 @@ export async function GET(request: Request) {
   const statuses = status
     ? status.split(",").map((item) => item.trim()).filter(Boolean)
     : [];
-  const rows = await prisma.customer.findMany({
-    where: {
-      ...(kind ? { kind } : {}),
-      ...(statuses.length ? { status: { in: statuses } } : {}),
-      ...(q
-        ? {
-            OR: [
-              { customerCode: { contains: q } },
-              { username: { contains: q } },
-              { name: { contains: q } },
-            ],
-          }
-        : {}),
-    },
-    include: { plan: true, nas: true },
-    orderBy: { name: "asc" },
-    take: q ? 20 : undefined,
+  const [rows, firstInvoices] = await Promise.all([
+    prisma.customer.findMany({
+      where: {
+        ...(kind ? { kind } : {}),
+        ...(statuses.length ? { status: { in: statuses } } : {}),
+        ...(q
+          ? {
+              OR: [
+                { customerCode: { contains: q } },
+                { username: { contains: q } },
+                { name: { contains: q } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        plan: true,
+        nas: true,
+        invoices: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
+      },
+      orderBy: { name: "asc" },
+      take: q ? 20 : undefined,
+    }),
+    prisma.invoice.groupBy({
+      by: ["customerId"],
+      _min: { createdAt: true },
+      ...(kind ? { where: { customer: { kind } } } : {}),
+    }),
+  ]);
+  const registered = new Map(
+    firstInvoices.map((row) => [row.customerId, row._min.createdAt?.toISOString() ?? null]),
+  );
+  return NextResponse.json({
+    rows: rows.map((row) => ({
+      ...mapCustomer(row),
+      latestInvoiceId: row.invoices[0]?.id ?? null,
+      registeredAt: registered.get(row.id) ?? null,
+    })),
   });
-  return NextResponse.json({ rows: rows.map(mapCustomer) });
 }
 
 /**

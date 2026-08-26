@@ -37,6 +37,8 @@ export function SettingsForm({
   namespace,
   notice,
   keys,
+  hideHeader,
+  skipLoad,
   children,
 }: {
   title: string;
@@ -44,6 +46,8 @@ export function SettingsForm({
   namespace: string;
   notice?: string;
   keys?: string[];
+  hideHeader?: boolean;
+  skipLoad?: boolean;
   children: ReactNode;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -52,6 +56,7 @@ export function SettingsForm({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (skipLoad) return;
     const prefix = namespace ? `${namespace}.` : "";
     const url = keys?.length
       ? `/api/v1/settings?keys=${encodeURIComponent(keys.join(","))}`
@@ -68,7 +73,7 @@ export function SettingsForm({
           applySettingValue(form, name, row.value);
         }
       });
-  }, [namespace, keys]);
+  }, [namespace, keys, skipLoad]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,7 +109,7 @@ export function SettingsForm({
 
   return (
     <div>
-      <PageHeader title={title} description={description} />
+      {hideHeader ? null : <PageHeader title={title} description={description} />}
       {notice ? (
         <p className="mb-3 rounded-sm border border-[#bce8f1] bg-[#d9edf7] px-3 py-2 text-[13px] text-[#31708f]">
           {notice}

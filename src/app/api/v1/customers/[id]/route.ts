@@ -45,6 +45,8 @@ export async function PATCH(
         ...(typeof body.nasId === "string" ? { nasId: body.nasId } : {}),
         ...(typeof body.planId === "string" ? { planId: body.planId } : {}),
         ...(typeof body.odp === "string" ? { odp: body.odp } : {}),
+        ...(typeof body.latitude === "string" ? { latitude: body.latitude.trim() } : {}),
+        ...(typeof body.longitude === "string" ? { longitude: body.longitude.trim() } : {}),
         ...(typeof body.ip === "string" ? { ip: body.ip } : {}),
         ...(typeof body.bindOnLogin === "boolean"
           ? { bindOnLogin: body.bindOnLogin }

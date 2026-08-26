@@ -67,7 +67,7 @@ export default function Page() {
         ) : null}
         <p className="mt-4 text-xs text-slate-500">
           Tes ini membaca Customer/Voucher di SQLite (kebijakan yang akan di-sync ke radcheck/radreply).
-          Paket UDP 1812/1813 dijawab FreeRADIUS, bukan <code>npm run radius</code>.
+          Paket UDP 1812/1813 dijawab FreeRADIUS.
         </p>
       </Panel>
     </div>

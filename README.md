@@ -1,11 +1,11 @@
 # Newbill
 
-Panel billing ISP (Next.js) + database bisnis Prisma/SQLite. Autentikasi UDP RADIUS dipegang **FreeRADIUS + MySQL** di mesin yang sama (bukan `npm run radius`).
+Panel billing ISP (Next.js) + database bisnis Prisma/SQLite. Autentikasi UDP RADIUS dipegang **FreeRADIUS + MySQL** (konfigurasi di SaaS Admin → Radius Engine).
 
 ```
 newbill/
-  src/app/                 UI + API
-  src/server/              FreeRADIUS sync, CoA, isolir job
+  src/app/                 UI operator, SaaS Admin, client, e-voucher + API
+  src/server/              FreeRADIUS sync, CoA, isolir job, Radius Engine
   prisma/                  SQLite bisnis
 ```
 

@@ -7,8 +7,10 @@ import { ATTR, md5 } from "@/lib/radius-codec";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
 
+/** RFC 5176 Disconnect-Request. Access-Request (1) dipegang FreeRADIUS, bukan file ini. */
 const DISCONNECT_REQUEST = 40;
 
+/** RFC 2865 §5: Type (1) + Length termasuk header 2 byte (1) + Value. */
 function encodeStringAttr(type: number, value: string) {
   const payload = Buffer.from(value, "utf8");
   const buf = Buffer.alloc(2 + payload.length);
@@ -18,6 +20,7 @@ function encodeStringAttr(type: number, value: string) {
   return buf;
 }
 
+/** NAS-IP-Address (RFC 2865 attr 4): Type + Length=6 + 4 oktet IPv4. */
 function encodeIpv4Attr(type: number, ip: string) {
   const parts = ip.split(".").map((part) => Number(part));
   if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
@@ -31,9 +34,10 @@ function encodeIpv4Attr(type: number, ip: string) {
 }
 
 /**
- * RFC 5176 §3: Request Authenticator untuk Disconnect/CoA-Request
- * = MD5(Code + Identifier + Length + 16 zero octets + Attributes + Secret)
- * — pola yang sama dengan Response Authenticator RFC 2865 (`encodeResponse`).
+ * RFC 5176 §3 Request Authenticator untuk Disconnect/CoA-Request:
+ * MD5(Code + Identifier + Length + 16 zero octets + Attributes + shared secret).
+ * Header RADIUS 20 byte; authenticator di offset 4 masih nol saat di-hash,
+ * lalu digest 16 byte disalin ke offset itu sebelum paket dikirim.
  */
 export function buildDisconnectPacket(opts: {
   username: string;
@@ -81,6 +85,7 @@ function nativeDisconnect(opts: {
       resolve({ ok: false, message: error.message });
     });
     socket.once("message", () => {
+      // RFC 5176 ACK=41 / NAK=42; kita hanya butuh bukti NAS merespons UDP.
       clearTimeout(timer);
       socket.close();
       resolve({ ok: true, message: "Disconnect-ACK/NAK diterima" });
@@ -180,6 +185,7 @@ export async function disconnectUser(input: {
     };
     let result = await radclientDisconnect(payload);
     if (!result.ok) {
+      // radclient dari paket FreeRADIUS; fallback UDP native kalau binary tidak ada di PATH.
       result = await nativeDisconnect(payload);
     }
     results.push({ ...result, sessionId: target.sessionId });

@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
-import { company } from "@/lib/mock-data";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [tenant, setTenant] = useState("Newbill");
+
+  useEffect(() => {
+    void fetch("/api/v1/shell")
+      .then((r) => r.json())
+      .then((data: { company?: { name?: string } }) => {
+        if (data.company?.name) setTenant(data.company.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -33,7 +42,7 @@ export default function LoginPage() {
             Hotspot · PPP billing system
           </p>
           <p className="mt-4 text-sm text-[#666]">Login to Radius Manager</p>
-          <p className="mt-1 text-xs text-[var(--lte-muted)]">{company.tenant}</p>
+          <p className="mt-1 text-xs text-[var(--lte-muted)]">{tenant}</p>
         </div>
 
         <div className="mt-6 space-y-5">

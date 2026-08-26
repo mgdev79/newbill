@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { writeActivityLog } from "@/server/activity-log";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
 import {
@@ -99,6 +100,14 @@ export async function runIsolirDueJob() {
         `voucher ${voucher.code}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  if (isolated.length || vouchersMarkedUsed) {
+    await writeActivityLog({
+      kind: "bg",
+      actor: "job",
+      message: `due-isolir: ${isolated.length} pelanggan isolir, ${vouchersMarkedUsed} voucher ditandai dipakai`,
+    });
   }
 
   return {

@@ -60,11 +60,15 @@ function mapRow(row: {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
+  const q = url.searchParams.get("q")?.trim();
   const rows = await prisma.voucher.findMany({
-    where: kind ? { kind } : undefined,
+    where: {
+      ...(kind ? { kind } : {}),
+      ...(q ? { code: { contains: q } } : {}),
+    },
     include: { plan: true, nas: true },
     orderBy: { createdAt: "desc" },
-    take: 500,
+    take: q ? 20 : 500,
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
 }

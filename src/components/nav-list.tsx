@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { company } from "@/lib/mock-data";
+import { useShell } from "@/components/shell-context";
 import { navGroups, pathMatches } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +112,7 @@ function NavBranch({
 }
 
 export function BrandBlock() {
+  const { company } = useShell();
   return (
     <div className="flex h-[50px] items-center gap-2 bg-[var(--lte-blue-dark)] px-4">
       <span className="flex size-7 items-center justify-center rounded bg-white/15 text-xs font-bold text-white">

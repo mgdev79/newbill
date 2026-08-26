@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { duitkuInquiry } from "@/server/duitku";
 
 export const runtime = "nodejs";
 
@@ -68,7 +69,30 @@ export async function POST(request: Request) {
         at: body.at ? new Date(body.at) : new Date(),
       },
     });
-    return NextResponse.json({ row: mapRow(row) }, { status: 201 });
+    let payment: { paymentUrl?: string; reference?: string; vaNumber?: string; error?: string } | undefined;
+    if (row.provider === "duitku") {
+      const inquiry = await duitkuInquiry({
+        merchantOrderId: row.ref,
+        paymentAmount: row.amount,
+        paymentMethod: row.channel || "SP",
+        productDetails: `Pembayaran ${row.ref}`,
+        customerVaName: row.customer || row.ref,
+      });
+      if (inquiry.ok) {
+        payment = {
+          paymentUrl: inquiry.paymentUrl,
+          reference: inquiry.reference,
+          vaNumber: inquiry.vaNumber,
+        };
+        await prisma.paymentTxn.update({
+          where: { id: row.id },
+          data: { note: [row.note, inquiry.reference].filter(Boolean).join(" · ") },
+        });
+      } else {
+        payment = { error: inquiry.error };
+      }
+    }
+    return NextResponse.json({ row: mapRow(row), payment }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Referensi sudah dipakai." }, { status: 409 });
   }

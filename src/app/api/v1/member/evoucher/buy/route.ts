@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyGateToken } from "@/lib/member-captcha";
+import { duitkuInquiry } from "@/server/duitku";
 
 export const runtime = "nodejs";
 
@@ -73,6 +74,30 @@ export async function POST(request: Request) {
     },
   });
 
+  const inquiry = await duitkuInquiry({
+    merchantOrderId: row.id,
+    paymentAmount: amount,
+    paymentMethod: paymentChannel,
+    productDetails: `e-Voucher ${plan.name} x${qty}`,
+    email: email || undefined,
+    phoneNumber: phone,
+    customerVaName: customer,
+    additionalParam: row.id,
+  });
+  if (inquiry.ok) {
+    await prisma.paymentTxn.create({
+      data: {
+        ref: row.id,
+        customer,
+        amount,
+        channel: paymentChannel,
+        status: "pending",
+        provider: "duitku",
+        note: inquiry.reference,
+      },
+    }).catch(() => null);
+  }
+
   return NextResponse.json(
     {
       row: {
@@ -91,12 +116,17 @@ export async function POST(request: Request) {
       payment: {
         channel: paymentChannel,
         amount,
-        instruction:
-          paymentChannel === "QRIS"
-            ? "Scan QRIS pada halaman pembayaran (gateway menyusul). Order menunggu pembayaran."
-            : paymentChannel === "ALFAMART"
-              ? "Bayar di Alfamart/POS dengan kode yang akan ditampilkan setelah gateway aktif."
-              : `Transfer VA ${paymentChannel} (gateway menyusul). Order menunggu pembayaran.`,
+        paymentUrl: inquiry.ok ? inquiry.paymentUrl : "",
+        vaNumber: inquiry.ok ? inquiry.vaNumber : "",
+        qrString: inquiry.ok ? inquiry.qrString : "",
+        error: inquiry.ok ? undefined : inquiry.error,
+        instruction: inquiry.ok
+          ? inquiry.paymentUrl
+            ? "Lanjutkan pembayaran di halaman Duitku."
+            : inquiry.vaNumber
+              ? `Transfer VA ${inquiry.vaNumber}.`
+              : "Menunggu pembayaran Duitku."
+          : inquiry.error,
       },
     },
     { status: 201 },

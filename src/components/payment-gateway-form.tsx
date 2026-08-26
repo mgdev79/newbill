@@ -185,8 +185,8 @@ export function PaymentGatewayForm({ tenantCode }: { tenantCode: string }) {
             .
           </li>
           <li>
-            Kredensial disimpan di database. Checkout HTTP ke Duitku/Xendit/Midtrans/Nicepay belum
-            diaktifkan — callback URL di bawah sudah bisa dipasang di dashboard provider.
+            Duitku: inquiry + callback HMAC (docs.duitku.com) sudah aktif. Xendit / Midtrans / Nicepay
+            masih simpan kredensial saja.
           </li>
         </ul>
 

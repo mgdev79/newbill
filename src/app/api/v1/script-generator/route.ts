@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { randomApiUser, randomSecret } from "@/lib/nas-script";
+import { extractIpv4, randomApiUser, randomSecret } from "@/lib/nas-script";
 import { publicVpnAccount } from "@/lib/saas";
 import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
 import { nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
@@ -75,6 +75,7 @@ export async function GET() {
         serverHost: pub.serverHost,
         type: pub.type,
         innerRadiusIp: pub.innerRadiusIp,
+        assignedIp: extractIpv4(pub.note),
         note: pub.online ? "online" : "offline",
       };
     }),

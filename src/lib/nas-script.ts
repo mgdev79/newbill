@@ -8,8 +8,6 @@ export type RadiusScriptInput = {
   radiusAuthPort: number;
   radiusAcctPort: number;
   radiusIncomingPort: number;
-  apiUser: string;
-  apiPassword: string;
   enablePpp: boolean;
   enableHotspot: boolean;
 };
@@ -21,16 +19,34 @@ export type VpnScriptInput = {
   username: string;
   password: string;
   innerRadiusIp: string;
+  /** IP tunnel klien (komentar IPADDR di Mixradius). */
+  clientIp?: string;
 };
+
+export const VPN_IFACE = "NEWBILL-VPN";
+export const VPN_ROUTE_COMMENT = "static route newbill-vpn";
+export const RADIUS_GROUP = "newbill.group";
+export const RADIUS_ADDED_COMMENT = "added by newbill";
+export const RADIUS_USER_COMMENT = "user for newbill authentication";
+export const RADIUS_GROUP_COMMENT = "group for newbill authentication";
 
 function q(value: string) {
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-const IFACE = "newbill-vpn";
+function joinCommands(parts: string[]) {
+  return parts
+    .filter(Boolean)
+    .map((part) => (part.endsWith(";") ? part : `${part};`))
+    .join("");
+}
 
 export function randomApiUser() {
   return `nbapi${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+export function radiusScriptUser(authPort: number) {
+  return `RadiusAuth${authPort}`;
 }
 
 export function randomSecret(length = 16) {
@@ -42,86 +58,107 @@ export function randomSecret(length = 16) {
   return out;
 }
 
-/** Perintah baku RouterOS: /user, /radius, /ppp aaa, /ip hotspot profile, /radius incoming. */
-export function generateRadiusScript(input: RadiusScriptInput) {
-  const address = input.radiusAddress.trim() || "0.0.0.0";
-  const services = [
-    input.enablePpp ? "ppp" : null,
-    input.enableHotspot ? "hotspot" : null,
-    "login",
-  ]
-    .filter(Boolean)
-    .join(",");
-
-  const hotspot =
-    input.enableHotspot
-      ? "/ip hotspot profile set [find] use-radius=yes;"
-      : "";
-  const ppp = input.enablePpp
-    ? "/ppp aaa set use-radius=yes accounting=yes interim-update=5m;"
-    : "";
-
-  return [
-    "/user group;",
-    `:do { add name="newbill.api" policy=read,write,api,test,policy,sensitive,winbox } on-error={};`,
-    "/user;",
-    `:do { remove [find comment="newbill-api"] } on-error={};`,
-    `/user add name=${q(input.apiUser)} group="newbill.api" password=${q(input.apiPassword)} comment="newbill-api";`,
-    "/radius;",
-    `:do { remove [find comment="newbill"] } on-error={};`,
-    `/radius add address=${address} secret=${q(input.radiusSecret)} service=${services} timeout=2s authentication-port=${input.radiusAuthPort} accounting-port=${input.radiusAcctPort} comment="newbill";`,
-    hotspot,
-    ppp,
-    `/user aaa set use-radius=yes;`,
-    `/radius incoming set accept=yes port=${input.radiusIncomingPort};`,
-  ]
-    .filter(Boolean)
-    .join(" ");
+export function extractIpv4(value: string) {
+  const match = value.match(/(?:IPADDR\s*:\s*)?(\d{1,3}(?:\.\d{1,3}){3})/i);
+  return match?.[1] ?? "";
 }
 
-function vpnInterfaceAdd(input: VpnScriptInput) {
-  const auth = `name=${IFACE} connect-to=${q(input.serverHost)} user=${q(input.username)} password=${q(input.password)} disabled=no comment="newbill"`;
+function vpnClientAdd(input: VpnScriptInput) {
+  const clientIp = extractIpv4(input.clientIp ?? "");
+  const comment = clientIp ? `IPADDR : ${clientIp}` : "newbill";
+  const common = `disabled=no connect-to=${q(input.serverHost)} name=${q(VPN_IFACE)} user=${q(input.username)} password=${q(input.password)} comment=${q(comment)}`;
   switch (input.type) {
     case "sstp":
-      return `/interface sstp-client add ${auth} authentication=mschap2,mschap1;`;
+      return `/interface sstp-client add ${common}`;
     case "ovpn":
-      return `/interface ovpn-client add ${auth};`;
+      return `/interface ovpn-client add ${common}`;
     case "pptp":
-      return `/interface pptp-client add ${auth};`;
+      return `/interface pptp-client add ${common}`;
     default:
-      return `/interface l2tp-client add ${auth} use-ipsec=yes;`;
+      return `/interface l2tp-client add ${common}`;
   }
 }
 
-/** Perintah baku RouterOS: interface *-client + /ip route (+ /routing table di v7). */
+function vpnCleanup() {
+  return [
+    `/interface sstp-client remove [find name=${q(VPN_IFACE)}]`,
+    `/interface ovpn-client remove [find name=${q(VPN_IFACE)}]`,
+    `/interface l2tp-client remove [find name=${q(VPN_IFACE)}]`,
+    `/interface pptp-client remove [find name=${q(VPN_IFACE)}]`,
+  ];
+}
+
+/**
+ * VPN client + static route ke IP RADIUS di sisi tunnel.
+ * v7: /routing table fib + /routing rule lookup-only-in-table (pola Mixradius ROS v7).
+ * v6: /ip route rule + routing-mark (ekuivalen ROS 6, tanpa /routing table).
+ */
 export function generateVpnScript(input: VpnScriptInput) {
   const host = input.serverHost.trim();
-  const inner = input.innerRadiusIp.trim();
   if (!host || !input.username) {
-    return ":put \"Pilih akun VPN, tipe, dan server dulu.\"";
+    return ':put "Pilih akun VPN, tipe, dan server dulu."';
   }
 
-  const lines = [
-    `/interface sstp-client; :do { remove [find name=${q(IFACE)}] } on-error={};`,
-    `/interface ovpn-client; :do { remove [find name=${q(IFACE)}] } on-error={};`,
-    `/interface l2tp-client; :do { remove [find name=${q(IFACE)}] } on-error={};`,
-    `/interface pptp-client; :do { remove [find name=${q(IFACE)}] } on-error={};`,
-    `/ip route; :do { remove [find comment="newbill-vpn"] } on-error={};`,
-    `/routing rule; :do { remove [find comment="newbill-vpn"] } on-error={};`,
-    vpnInterfaceAdd(input),
+  const inner = extractIpv4(input.innerRadiusIp) || input.innerRadiusIp.trim();
+  const parts = [...vpnCleanup()];
+
+  if (input.ros === "v7") {
+    parts.push(
+      `/routing table remove [find name=${q(VPN_IFACE)}]`,
+      `/routing rule remove [find comment=${q(VPN_ROUTE_COMMENT)}]`,
+      `/ip route remove [find comment=${q(VPN_ROUTE_COMMENT)}]`,
+    );
+  } else {
+    parts.push(
+      `/ip route rule remove [find comment=${q(VPN_ROUTE_COMMENT)}]`,
+      `/ip route remove [find comment=${q(VPN_ROUTE_COMMENT)}]`,
+    );
+  }
+
+  parts.push(vpnClientAdd(input));
+
+  if (inner) {
+    if (input.ros === "v7") {
+      parts.push(
+        `/routing table add name=${q(VPN_IFACE)} fib`,
+        `/routing rule add dst-address=${q(inner)} action=lookup-only-in-table table=${q(VPN_IFACE)} comment=${q(VPN_ROUTE_COMMENT)}`,
+        `/ip route add disabled=no gateway=${q(VPN_IFACE)} dst-address=${q(inner)} routing-table=${q(VPN_IFACE)} comment=${q(VPN_ROUTE_COMMENT)}`,
+      );
+    } else {
+      parts.push(
+        `/ip route rule add dst-address=${q(inner)} action=lookup-only-in-table table=${q(VPN_IFACE)} comment=${q(VPN_ROUTE_COMMENT)}`,
+        `/ip route add disabled=no gateway=${q(VPN_IFACE)} dst-address=${q(inner)} routing-mark=${q(VPN_IFACE)} comment=${q(VPN_ROUTE_COMMENT)}`,
+      );
+    }
+  }
+
+  return joinCommands(parts);
+}
+
+/**
+ * RADIUS + user API MikroTik. Perintah /radius, /ppp aaa, /ip hotspot profile
+ * sama di ROS v6 dan v7 (perbedaan v6/v7 hanya di skrip VPN).
+ */
+export function generateRadiusScript(input: RadiusScriptInput) {
+  const address = input.radiusAddress.trim() || "0.0.0.0";
+  const secret = input.radiusSecret;
+  const apiUser = radiusScriptUser(input.radiusAuthPort);
+
+  const parts = [
+    `/radius remove [find comment=${q(RADIUS_ADDED_COMMENT)}]`,
+    `/radius remove [find comment="newbill"]`,
+    `/user remove [find comment=${q(RADIUS_USER_COMMENT)}]`,
+    `/user remove [find comment="newbill-api"]`,
+    `/user group remove [find comment=${q(RADIUS_GROUP_COMMENT)}]`,
+    `/user group add name=${q(RADIUS_GROUP)} policy=read,write,api,test,policy,sensitive comment=${q(RADIUS_GROUP_COMMENT)}`,
+    `/user add name=${q(apiUser)} group=${q(RADIUS_GROUP)} password=${q(secret)} comment=${q(RADIUS_USER_COMMENT)}`,
+    `/radius add authentication-port=${input.radiusAuthPort} accounting-port=${input.radiusAcctPort} timeout=2s comment=${q(RADIUS_ADDED_COMMENT)} service=ppp,hotspot,login address=${address} secret=${q(secret)}`,
+    `/ip hotspot profile set use-radius=yes radius-accounting=yes radius-interim-update="00:10:00" nas-port-type="wireless-802.11" [find name!=""]`,
+    `/ppp aaa set use-radius=yes accounting=yes interim-update="00:10:00"`,
+    `/radius incoming set accept=yes port=${input.radiusIncomingPort}`,
   ];
 
-  if (inner && input.ros === "v7") {
-    lines.push(
-      `/routing table; :do { add fib name=${IFACE} } on-error={};`,
-      `/routing rule add dst-address=${inner}/32 action=lookup table=${IFACE} comment="newbill-vpn";`,
-      `/ip route add dst-address=${inner}/32 gateway=${IFACE} routing-table=${IFACE} comment="newbill-vpn";`,
-    );
-  } else if (inner) {
-    lines.push(`/ip route add dst-address=${inner} gateway=${IFACE} comment="newbill-vpn";`);
-  }
-
-  return lines.join(" ");
+  return joinCommands(parts);
 }
 
 export const vpnTypeLabel: Record<VpnType, string> = {

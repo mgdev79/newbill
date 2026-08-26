@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     serverHost?: string;
     type?: string;
     innerRadiusIp?: string;
+    assignedIp?: string;
     tenantId?: string;
     serverId?: string;
   };
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
       serverHost,
       type: body.type || "l2tp",
       innerRadiusIp: inner,
+      note: body.assignedIp?.trim() || "",
       tenantId: body.tenantId || null,
       serverId,
     },

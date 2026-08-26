@@ -6,6 +6,7 @@ import { Button, Field, inputClass, textareaClass } from "@/components/ui";
 import {
   generateRadiusScript,
   generateVpnScript,
+  radiusScriptUser,
   vpnTypeLabel,
   type RosVersion,
   type VpnType,
@@ -19,6 +20,7 @@ type VpnRow = {
   serverHost: string;
   type: string;
   innerRadiusIp: string;
+  assignedIp?: string;
   note?: string;
 };
 
@@ -46,6 +48,27 @@ type Creds = {
   vpnAccounts: VpnRow[];
 };
 
+function RosVersionField({
+  value,
+  onChange,
+}: {
+  value: RosVersion;
+  onChange: (value: RosVersion) => void;
+}) {
+  return (
+    <Field label="! RouterOS Version">
+      <select
+        className={inputClass}
+        value={value}
+        onChange={(event) => onChange(event.target.value as RosVersion)}
+      >
+        <option value="v6">MikroTik : ROS v6.x</option>
+        <option value="v7">MikroTik : ROS v7.x</option>
+      </select>
+    </Field>
+  );
+}
+
 export function ScriptGeneratorModal({
   open,
   onClose,
@@ -58,7 +81,7 @@ export function ScriptGeneratorModal({
   nasId?: string;
 }) {
   const [tab, setTab] = useState<"vpn" | "radius">("vpn");
-  const [ros, setRos] = useState<RosVersion>("v6");
+  const [ros, setRos] = useState<RosVersion>("v7");
   const [creds, setCreds] = useState<Creds | null>(null);
   const [vpnId, setVpnId] = useState("");
   const [selectedNasId, setSelectedNasId] = useState(nasId ?? "");
@@ -72,6 +95,7 @@ export function ScriptGeneratorModal({
     serverHost: "",
     type: "l2tp" as VpnType,
     innerRadiusIp: "",
+    assignedIp: "",
   });
 
   async function load() {
@@ -108,6 +132,7 @@ export function ScriptGeneratorModal({
       username: account.username,
       password: account.password,
       innerRadiusIp: account.innerRadiusIp,
+      clientIp: account.assignedIp,
     });
   }, [account, ros, vpnType]);
 
@@ -125,13 +150,12 @@ export function ScriptGeneratorModal({
       radiusAuthPort: nas.radiusAuthPort,
       radiusAcctPort: nas.radiusAcctPort,
       radiusIncomingPort: nas.radiusIncomingPort || creds?.radiusIncomingPort || 3799,
-      apiUser: nas.apiUser || creds?.apiUser || "newbill",
-      apiPassword: nas.apiPassword || creds?.apiPassword || "",
       enablePpp: nas.enablePpp,
       enableHotspot: nas.enableHotspot,
     });
   }, [creds, nas, radiusAddress, ros]);
 
+  const radiusApiUser = nas?.radiusAuthPort ? radiusScriptUser(nas.radiusAuthPort) : "";
   const script = tab === "vpn" ? vpnScript : radiusScript;
 
   async function copyScript() {
@@ -162,6 +186,7 @@ export function ScriptGeneratorModal({
       serverHost: "",
       type: "l2tp",
       innerRadiusIp: "",
+      assignedIp: "",
     });
     await load();
     setVpnId(data.row.id);
@@ -184,16 +209,7 @@ export function ScriptGeneratorModal({
 
       {tab === "vpn" ? (
         <div className="grid gap-3">
-          <Field label="! RouterOS Version">
-            <select
-              className={inputClass}
-              value={ros}
-              onChange={(event) => setRos(event.target.value as RosVersion)}
-            >
-              <option value="v6">MikroTik : ROS v6.x</option>
-              <option value="v7">MikroTik : ROS v7.x</option>
-            </select>
-          </Field>
+          <RosVersionField value={ros} onChange={setRos} />
           <Field label="! VPN Account">
             <select
               className={inputClass}
@@ -297,6 +313,16 @@ export function ScriptGeneratorModal({
                   placeholder="IP Newbill di sisi VPN"
                 />
               </Field>
+              <Field label="IPADDR klien VPN">
+                <input
+                  className={inputClass}
+                  value={newVpn.assignedIp}
+                  onChange={(event) =>
+                    setNewVpn({ ...newVpn, assignedIp: event.target.value })
+                  }
+                  placeholder="IP tunnel yang didapat klien, contoh 172.23.106.214"
+                />
+              </Field>
               <div className="md:col-span-2">
                 <Button onClick={() => void saveVpn()}>Simpan akun</Button>
               </div>
@@ -305,6 +331,7 @@ export function ScriptGeneratorModal({
         </div>
       ) : (
         <div className="space-y-3 text-sm">
+          <RosVersionField value={ros} onChange={setRos} />
           <Field label="NAS (port UDP unik dari FreeRADIUS)">
             <select
               className={inputClass}
@@ -321,10 +348,11 @@ export function ScriptGeneratorModal({
             </select>
           </Field>
           <p>
-            Username API = <strong>{nas?.apiUser ?? creds?.apiUser ?? "…"}</strong>
+            Username API MikroTik = <strong>{radiusApiUser || "RadiusAuth{port}"}</strong>
           </p>
           <p>
-            Secret RADIUS = <strong>{nas?.radiusSecret || creds?.radiusSecret || "…"}</strong>
+            Secret RADIUS / password user ={" "}
+            <strong>{nas?.radiusSecret || creds?.radiusSecret || "…"}</strong>
           </p>
           <p className="text-xs text-slate-500">
             Auth {nas?.radiusAuthPort || "—"} · Acct {nas?.radiusAcctPort || "—"} · CoA{" "}
@@ -333,6 +361,12 @@ export function ScriptGeneratorModal({
           <p className="text-xs text-slate-500">
             Address RADIUS di skrip: {radiusAddress || "(isi RADIUS_PUBLIC_IP atau form tambah router)"}
           </p>
+          {radiusApiUser ? (
+            <p className="text-xs text-slate-600">
+              Setelah paste, isi Username API di form router dengan {radiusApiUser} dan
+              password sama dengan secret RADIUS.
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -355,12 +389,17 @@ export function ScriptGeneratorModal({
         className={`${textareaClass} mt-2 min-h-[160px]`}
         spellCheck={false}
       />
-      {tab === "radius" ? (
+      {tab === "vpn" ? (
+        <p className="mt-3 text-xs text-slate-600">
+          ROS v7 memakai /routing table + lookup-only-in-table. ROS v6 memakai /ip route
+          rule + routing-mark. Skrip vendor AutoSwitch tidak diunduh.
+        </p>
+      ) : (
         <p className="mt-3 text-xs text-slate-600">
           <strong>Penting:</strong> jika NAS menyambung lewat VPN, ganti address RADIUS di MikroTik ke IP
-          inner akun VPN, bukan IP publik Newbill.
+          inner akun VPN, bukan IP publik Newbill. Perintah RADIUS sama untuk ROS v6 dan v7.
         </p>
-      ) : null}
+      )}
     </Modal>
   );
 }

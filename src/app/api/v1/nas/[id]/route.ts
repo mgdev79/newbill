@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { parseNasBody } from "@/lib/nas-dto";
 import { mergeNasPublic, nasPortsIndex } from "@/server/nas-radius-view";
+import { onlineUsersByNas } from "@/server/nas-online";
 import { removeNasByRecord, syncNasByRecord } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
@@ -14,7 +15,10 @@ export async function GET(
   const row = await prisma.nas.findUnique({ where: { id } });
   if (!row) return NextResponse.json({ error: "Router tidak ditemukan." }, { status: 404 });
   const index = await nasPortsIndex();
-  return NextResponse.json({ row: mergeNasPublic(row, index) });
+  const online = await onlineUsersByNas([{ id: row.id, ip: row.ip }]);
+  return NextResponse.json({
+    row: mergeNasPublic(row, index, { userOnline: online.get(row.id) ?? 0 }),
+  });
 }
 
 export async function PATCH(
@@ -74,7 +78,11 @@ export async function PATCH(
   }
 
   const index = await nasPortsIndex();
-  return NextResponse.json({ row: mergeNasPublic(row, index), radius });
+  const online = await onlineUsersByNas([{ id: row.id, ip: row.ip }]);
+  return NextResponse.json({
+    row: mergeNasPublic(row, index, { userOnline: online.get(row.id) ?? 0 }),
+    radius,
+  });
 }
 
 export async function DELETE(

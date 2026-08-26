@@ -17,11 +17,13 @@ export async function nasPortsIndex() {
 export function mergeNasPublic(
   nas: Nas,
   index: Awaited<ReturnType<typeof nasPortsIndex>>,
+  extra?: { userOnline?: number },
 ): NasPublic {
   const ports = index.byName.get(nas.name) ?? index.byIp.get(nas.ip);
   return toPublicNas(nas, {
     radiusAuthPort: ports?.radiusAuthPort || null,
     radiusAcctPort: ports?.radiusAcctPort || null,
+    userOnline: extra?.userOnline ?? 0,
   });
 }
 

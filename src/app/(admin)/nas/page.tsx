@@ -6,6 +6,9 @@ import { DataTable } from "@/components/data-table";
 import { ScriptGeneratorButton } from "@/components/script-generator-modal";
 import { Button, PageHeader, Panel, StatusPill } from "@/components/ui";
 import type { NasPublic } from "@/lib/nas-dto";
+import { formatDate } from "@/lib/utils";
+
+const TABLE_REFRESH_MS = 60_000;
 
 export default function NasPage() {
   const [rows, setRows] = useState<NasPublic[]>([]);
@@ -13,8 +16,8 @@ export default function NasPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
+  async function load(opts?: { silent?: boolean }) {
+    if (!opts?.silent) setLoading(true);
     const response = await fetch("/api/v1/nas");
     const data = (await response.json()) as { rows: NasPublic[] };
     setRows(data.rows);
@@ -23,6 +26,10 @@ export default function NasPage() {
 
   useEffect(() => {
     void load();
+    const timer = window.setInterval(() => {
+      void load({ silent: true });
+    }, TABLE_REFRESH_MS);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function testRow(id: string) {
@@ -32,7 +39,7 @@ export default function NasPage() {
     const result = (await response.json()) as { ok?: boolean; message?: string; error?: string };
     setBusyId(null);
     setToast(result.message ?? result.error ?? (result.ok ? "OK" : "Gagal"));
-    await load();
+    await load({ silent: true });
   }
 
   async function removeRow(id: string, name: string) {
@@ -46,7 +53,7 @@ export default function NasPage() {
       return;
     }
     setToast(`Router ${name} dihapus.`);
-    await load();
+    await load({ silent: true });
   }
 
   return (
@@ -70,7 +77,16 @@ export default function NasPage() {
       ) : null}
       <Panel title="Daftar router">
         <DataTable
-          headers={["Nama", "IP", "API", "RADIUS auth/acct", "SSL", "Layanan", "Koneksi", ""]}
+          headers={[
+            "Nama",
+            "IP",
+            "API",
+            "RADIUS auth/acct",
+            "Status Ping",
+            "User Online",
+            "Layanan",
+            "",
+          ]}
           rows={rows.map((row) => [
             row.name,
             row.ip,
@@ -78,11 +94,18 @@ export default function NasPage() {
             row.radiusAuthPort && row.radiusAcctPort
               ? `${row.radiusAuthPort}/${row.radiusAcctPort}`
               : "—",
-            row.useSsl ? "API-SSL" : "API",
+            <span key={`${row.id}-ping`} title={row.lastError || row.lastSeenAt || ""}>
+              <StatusPill status={row.healthy ? "up" : "down"} />
+              {row.lastSeenAt ? (
+                <span className="mt-0.5 block text-[11px] font-normal text-[var(--lte-muted)]">
+                  {formatDate(row.lastSeenAt)}
+                </span>
+              ) : null}
+            </span>,
+            String(row.userOnline ?? 0),
             [row.enablePpp ? "PPP" : null, row.enableHotspot ? "HS" : null]
               .filter(Boolean)
               .join(", ") || "—",
-            <StatusPill key={`${row.id}-h`} status={row.healthy ? "ok" : "warn"} />,
             <span key={`${row.id}-a`} className="flex gap-2">
               <Button
                 variant="secondary"
@@ -114,6 +137,10 @@ export default function NasPage() {
             Belum ada router. Tambah dari menu.
           </p>
         ) : null}
+        <p className="mt-3 text-[12px] text-[var(--lte-muted)]">
+          Sistem akan mengecek status ping ke router setiap 5 menit. Tabel Router akan di refresh
+          otomatis setiap 1 menit.
+        </p>
       </Panel>
     </div>
   );

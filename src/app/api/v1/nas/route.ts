@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { parseNasBody } from "@/lib/nas-dto";
+import { onlineUsersByNas } from "@/server/nas-online";
 import { mergeNasPublic, nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
 import { syncNasByRecord } from "@/server/radius-hooks";
 
@@ -8,12 +9,16 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const rows = await prisma.nas.findMany({ orderBy: { name: "asc" } });
-  const index = await nasPortsIndex();
+  const [index, online] = await Promise.all([nasPortsIndex(), onlineUsersByNas(rows)]);
   return NextResponse.json({
-    rows: rows.map((row) => mergeNasPublic(row, index)),
+    rows: rows.map((row) =>
+      mergeNasPublic(row, index, { userOnline: online.get(row.id) ?? 0 }),
+    ),
     meta: {
       radiusIncomingPort: radiusIncomingPort(),
       suggestedRadiusIp: process.env.RADIUS_PUBLIC_IP ?? "",
+      pingIntervalMs: Number(process.env.NAS_PING_INTERVAL_MS ?? 5 * 60 * 1000),
+      tableRefreshMs: 60_000,
     },
   });
 }

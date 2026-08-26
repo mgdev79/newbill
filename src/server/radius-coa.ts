@@ -3,7 +3,7 @@ import { createSocket } from "node:dgram";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
-import { ATTR } from "@/server/radius/codec";
+import { ATTR, md5 } from "@/server/radius/codec";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
 
@@ -30,11 +30,17 @@ function encodeIpv4Attr(type: number, ip: string) {
   return buf;
 }
 
-function buildDisconnectPacket(opts: {
+/**
+ * RFC 5176 §3: Request Authenticator untuk Disconnect/CoA-Request
+ * = MD5(Code + Identifier + Length + 16 zero octets + Attributes + Secret)
+ * — pola yang sama dengan Response Authenticator RFC 2865 (`encodeResponse`).
+ */
+export function buildDisconnectPacket(opts: {
   username: string;
   secret: string;
   nasIp?: string;
   sessionId?: string;
+  identifier?: number;
 }) {
   const attrs: Buffer[] = [encodeStringAttr(ATTR.UserName, opts.username)];
   if (opts.sessionId) {
@@ -47,10 +53,11 @@ function buildDisconnectPacket(opts: {
   const body = Buffer.concat(attrs);
   const packet = Buffer.alloc(20 + body.length);
   packet[0] = DISCONNECT_REQUEST;
-  packet[1] = randomBytes(1)[0];
+  packet[1] = (opts.identifier ?? randomBytes(1)[0]) & 0xff;
   packet.writeUInt16BE(packet.length, 2);
-  randomBytes(16).copy(packet, 4);
   body.copy(packet, 20);
+  const hash = md5(Buffer.concat([packet, Buffer.from(opts.secret, "utf8")]));
+  hash.copy(packet, 4);
   return packet;
 }
 

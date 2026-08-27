@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { getBillingTenant } from "@/lib/saas";
 import { gatewayCallbackUrl, tenantPublicOrigin } from "@/lib/tenant-host";
 import { settleGatewayPayment } from "@/server/gateway-settle";
@@ -31,6 +31,7 @@ export function duitkuHmac(message: string, apiKey: string) {
 }
 
 export async function getDuitkuConfig(): Promise<DuitkuConfig | null> {
+  const prisma = await getDb();
   const rows = await prisma.appSetting.findMany({
     where: {
       key: {
@@ -130,6 +131,7 @@ export async function duitkuInquiry(input: {
   customerVaName?: string;
   additionalParam?: string;
 }) {
+  const prisma = await getDb();
   const config = await getDuitkuConfig();
   if (!config) {
     return { ok: false as const, error: "Merchant code / API key Duitku belum diisi." };
@@ -189,6 +191,7 @@ export async function duitkuInquiry(input: {
 }
 
 export async function duitkuTransactionStatus(merchantOrderId: string) {
+  const prisma = await getDb();
   const config = await getDuitkuConfig();
   if (!config) return null;
   const signature = duitkuHmac(`${config.merchantCode}${merchantOrderId}`, config.apiKey);
@@ -206,6 +209,7 @@ export async function duitkuTransactionStatus(merchantOrderId: string) {
 }
 
 export async function settleDuitkuPayment(callback: DuitkuCallback) {
+  const prisma = await getDb();
   const paid = callback.resultCode === "00";
   return settleGatewayPayment({
     ref: callback.merchantOrderId,

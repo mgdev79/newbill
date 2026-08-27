@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCompanyProfile } from "@/lib/billing";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { removeRadiusUsername } from "@/server/freeradius-sync";
 import { syncCustomerById } from "@/server/radius-hooks";
 
@@ -10,6 +10,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.customer.findUnique({ where: { id } });
   if (!existing) {
@@ -97,6 +98,7 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const url = new URL(request.url);
   const withReceipt = url.searchParams.get("receipt") === "1";
@@ -177,6 +179,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.customer.findUnique({ where: { id } });
   if (!existing) {

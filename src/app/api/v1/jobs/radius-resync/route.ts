@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   syncCustomerById,
   syncNasByRecord,
@@ -17,6 +17,7 @@ function authorized(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   if (!authorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

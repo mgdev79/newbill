@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { getBillingTenant } from "@/lib/saas";
 import { gatewayCallbackUrl, tenantPublicOrigin } from "@/lib/tenant-host";
 import { settleGatewayPayment } from "@/server/gateway-settle";
@@ -10,6 +10,7 @@ export type NicepayConfig = {
 };
 
 export async function getNicepayConfig(): Promise<NicepayConfig | null> {
+  const prisma = await getDb();
   const rows = await prisma.appSetting.findMany({
     where: { key: { in: ["gateway.nicepay.merchant_id", "gateway.nicepay.merchant_key"] } },
   });
@@ -79,6 +80,7 @@ export async function nicepayRegister(input: {
   phone?: string;
   channel?: string;
 }) {
+  const prisma = await getDb();
   const config = await getNicepayConfig();
   if (!config) return { ok: false as const, error: "Merchant ID / Key Nicepay belum diisi." };
   const tenant = await getBillingTenant();
@@ -163,6 +165,7 @@ export function parseNicepayFields(raw: string, contentType: string | null) {
 }
 
 export async function settleNicepayCallback(fields: Record<string, string>) {
+  const prisma = await getDb();
   const ref = fields.referenceNo || fields.refNo || "";
   if (!ref) return { paid: false, status: "failed" };
   const paid = fields.resultCd === "0000";

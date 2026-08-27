@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { tenantSubdomain } from "@/lib/tenant-host";
 import { createPlatformGatewayCharge } from "@/server/platform-gateway";
 import { getActivePlatformGatewayProvider } from "@/server/platform-gateway-settings";

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
+import { getDb, getRequestTenant } from "@/lib/db";
 import { TENANT_COOKIE } from "@/lib/auth-cookies";
 
 export { TENANT_COOKIE };
@@ -9,19 +10,22 @@ export async function getTenantSession() {
   const jar = await cookies();
   const id = jar.get(TENANT_COOKIE)?.value;
   if (!id) return null;
-  return prisma.tenant.findUnique({
+  return platformPrisma.tenant.findUnique({
     where: { id },
     include: { plan: true },
   });
 }
 
-/** Tenant yang lisensinya ditampilkan di panel operator billing. */
+/** Tenant lisensi untuk panel operator subdomain saat ini. */
 export async function getBillingTenant() {
-  const setting = await prisma.appSetting.findUnique({
+  const fromRequest = await getRequestTenant();
+  if (fromRequest) return fromRequest;
+
+  const setting = await platformPrisma.platformSetting.findUnique({
     where: { key: BILLING_TENANT_SETTING },
   });
   const code = setting?.value || "ariyana";
-  return prisma.tenant.findUnique({
+  return platformPrisma.tenant.findUnique({
     where: { code },
     include: { plan: true },
   });
@@ -155,4 +159,21 @@ export function maskSecret(value: string, visible = 8) {
   if (!value) return "—";
   if (value.length <= visible) return `${value[0] ?? ""}••••`;
   return `${value.slice(0, visible)}${".".repeat(Math.min(40, value.length - visible))}`;
+}
+
+/** Profil perusahaan dari AppSetting tenant aktif. */
+export async function getTenantCompanyProfile() {
+  const prisma = await getDb();
+  const tenant = await getBillingTenant();
+  const [nameSet, addrSet, phoneSet] = await Promise.all([
+    prisma.appSetting.findUnique({ where: { key: "company_name" } }),
+    prisma.appSetting.findUnique({ where: { key: "company_address" } }),
+    prisma.appSetting.findUnique({ where: { key: "company_phone" } }),
+  ]);
+
+  return {
+    name: nameSet?.value || tenant?.name || "Newbill ISP",
+    address: addrSet?.value || tenant?.notes || "Alamat perusahaan belum diatur",
+    phone: phoneSet?.value || tenant?.phone || "",
+  };
 }

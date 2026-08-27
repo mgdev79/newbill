@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { createSocket } from "node:dgram";
 import { randomBytes } from "node:crypto";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { getRadiusCoaPort } from "@/server/radius-engine";
 import { ATTR, md5 } from "@/lib/radius-codec";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
@@ -136,6 +136,7 @@ type FrAcctRow = RowDataPacket & {
 };
 
 async function liveSessions(username: string) {
+  const prisma = await getDb();
   const local = await prisma.radAcct.findMany({
     where: { username, stoppedAt: null },
     select: { sessionId: true, nasIp: true },
@@ -167,6 +168,7 @@ export async function disconnectUser(input: {
   secret: string;
   sessionId?: string;
 }) {
+  const prisma = await getDb();
   const coaPort = await getRadiusCoaPort();
   const sessions = input.sessionId
     ? [{ sessionId: input.sessionId, nasIp: input.nasIp }]
@@ -204,6 +206,7 @@ export async function disconnectUser(input: {
 }
 
 export async function disconnectSession(sessionId: string) {
+  const prisma = await getDb();
   const row = await prisma.radAcct.findUnique({
     where: { sessionId },
     include: { nas: true, customer: true },

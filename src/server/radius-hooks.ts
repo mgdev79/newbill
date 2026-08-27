@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   disconnectCustomerSessions,
   removeNasRadius,
@@ -13,6 +13,7 @@ export async function syncCustomerById(
   id: string,
   opts?: { previousUsername?: string; disconnectIfBlocked?: boolean },
 ) {
+  const prisma = await getDb();
   const row = await prisma.customer.findUnique({
     where: { id },
     include: { plan: { include: { bandwidth: true, group: true } }, nas: true },
@@ -40,6 +41,7 @@ export async function syncCustomerById(
 }
 
 export async function syncVoucherById(id: string) {
+  const prisma = await getDb();
   const row = await prisma.voucher.findUnique({
     where: { id },
     include: { plan: { include: { bandwidth: true, group: true } } },
@@ -49,6 +51,7 @@ export async function syncVoucherById(id: string) {
 }
 
 export async function removeVoucherRadius(code: string) {
+  const prisma = await getDb();
   await removeRadiusUsername(code);
 }
 
@@ -56,14 +59,17 @@ export async function syncNasByRecord(
   nas: Parameters<typeof syncNasRadius>[0],
   previous?: { name: string; ip: string },
 ) {
+  const prisma = await getDb();
   return syncNasRadius(nas, previous);
 }
 
 export async function removeNasByRecord(nas: { name: string; ip: string }) {
+  const prisma = await getDb();
   return removeNasRadius(nas);
 }
 
 export async function resyncUsersOnPlan(planId: string) {
+  const prisma = await getDb();
   const [customers, vouchers] = await Promise.all([
     prisma.customer.findMany({ where: { planId }, select: { id: true } }),
     prisma.voucher.findMany({ where: { planId }, select: { id: true } }),
@@ -73,11 +79,13 @@ export async function resyncUsersOnPlan(planId: string) {
 }
 
 export async function resyncUsersOnBandwidth(bandwidthId: string) {
+  const prisma = await getDb();
   const plans = await prisma.plan.findMany({ where: { bandwidthId }, select: { id: true } });
   for (const plan of plans) await resyncUsersOnPlan(plan.id);
 }
 
 export async function resyncUsersOnGroup(groupId: string) {
+  const prisma = await getDb();
   const plans = await prisma.plan.findMany({ where: { groupId }, select: { id: true } });
   for (const plan of plans) await resyncUsersOnPlan(plan.id);
 }

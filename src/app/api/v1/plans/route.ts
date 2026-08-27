@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -34,6 +34,7 @@ function mapRow(row: {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const type = new URL(request.url).searchParams.get("type");
   const rows = await prisma.plan.findMany({
     where: type ? { type } : undefined,
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     name?: string;
     type?: string;

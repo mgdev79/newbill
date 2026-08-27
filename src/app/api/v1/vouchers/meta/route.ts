@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 /** Meta form generate voucher. */
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") === "ppp" ? "ppp" : "hotspot";
 

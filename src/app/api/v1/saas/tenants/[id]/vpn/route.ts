@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { publicVpnAccount } from "@/lib/saas";
 import { randomSecret } from "@/lib/nas-script";
 import { createPppSecret } from "@/server/mikrotik/ppp";

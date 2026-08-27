@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -20,11 +20,13 @@ function mapRow(row: {
 }
 
 export async function GET() {
+  const prisma = await getDb();
   const rows = await prisma.financeTopup.findMany({ orderBy: { at: "desc" } });
   return NextResponse.json({ rows: rows.map(mapRow) });
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     at?: string;
     reseller?: string;

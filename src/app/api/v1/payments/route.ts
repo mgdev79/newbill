@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { createGatewayCharge } from "@/server/gateway-charge";
 import { getActiveGatewayProvider, type GatewayProvider } from "@/server/gateway-settle";
 
@@ -30,6 +30,7 @@ function mapRow(row: {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const provider = new URL(request.url).searchParams.get("provider");
   const rows = await prisma.paymentTxn.findMany({
     where: provider ? { provider } : undefined,
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     ref?: string;
     customer?: string;

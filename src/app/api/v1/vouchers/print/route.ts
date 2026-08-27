@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCompanyProfile } from "@/lib/billing";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { renderVoucherTemplate } from "@/lib/voucher-template";
 
 export const runtime = "nodejs";
 
 /** Cetak voucher memakai template HTML dari Pengaturan. */
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     templateId?: string;
     voucherIds?: string[];

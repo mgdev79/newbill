@@ -1,19 +1,15 @@
-import type { Tenant, TenantSignupOrder } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import type { Tenant, TenantSignupOrder } from "@/generated/platform";
+import { platformPrisma } from "@/lib/platform-db";
 import { tenantPublicOrigin, tenantSubdomain } from "@/lib/tenant-host";
+import { provisionTenantDatabase } from "@/server/tenant-provision";
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-/**
- * Satu jalur aktivasi untuk callback gateway platform dan tombol "Tandai Bayar Tunai".
- * Isolasi DB per-tenant belum ada di codebase ini — yang dibuat adalah baris Tenant
- * di database platform yang sama (pola POST /api/v1/saas/tenants).
- */
 export async function activateTenantSignup(
   order: TenantSignupOrder,
   input: { status: "paid" | "manual_cash"; note: string },
 ): Promise<{ tenant: Tenant; created: boolean }> {
-  return prisma.$transaction(async (tx) => {
+  const result = await platformPrisma.$transaction(async (tx) => {
     const current = await tx.tenantSignupOrder.findUnique({ where: { id: order.id } });
     if (!current) {
       throw new Error("Order signup tidak ditemukan.");
@@ -63,4 +59,44 @@ export async function activateTenantSignup(
 
     return { tenant, created: true };
   });
+
+  if (result.created) {
+    provisionTenantDatabase(result.tenant.code);
+  }
+
+  return result;
+}
+
+export async function createPlatformTenant(input: {
+  code: string;
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  planId: string;
+  status?: string;
+  billingUrl?: string;
+  radiusPublicIp?: string;
+  notes?: string;
+  expiresAt?: Date | null;
+}) {
+  const code = tenantSubdomain(input.code);
+  const tenant = await platformPrisma.tenant.create({
+    data: {
+      code,
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+      phone: input.phone?.trim() ?? "",
+      planId: input.planId,
+      status: input.status || "active",
+      billingUrl: input.billingUrl?.trim() || tenantPublicOrigin(code),
+      radiusPublicIp: input.radiusPublicIp?.trim() ?? "",
+      notes: input.notes?.trim() ?? "",
+      expiresAt: input.expiresAt ?? null,
+    },
+    include: { plan: true },
+  });
+  provisionTenantDatabase(code);
+  return tenant;
 }

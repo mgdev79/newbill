@@ -1,6 +1,7 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { writeActivityLog } from "@/server/activity-log";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
+import { forEachActiveTenant } from "@/server/tenant-jobs";
 import type { RowDataPacket } from "mysql2";
 import {
   disconnectCustomerSessions,
@@ -13,6 +14,7 @@ const INTERVAL_MS = Number(process.env.FREERADIUS_ISOLIR_INTERVAL_MS ?? 5 * 60 *
 type SchedulerGlobal = { __nbIsolirTimer?: ReturnType<typeof setInterval> };
 
 export async function runIsolirDueJob() {
+  const prisma = await getDb();
   const now = new Date();
   const due = await prisma.customer.findMany({
     where: { status: "active", dueAt: { lt: now } },
@@ -121,6 +123,10 @@ export async function runIsolirDueJob() {
   };
 }
 
+export async function runIsolirDueJobForAllTenants() {
+  return forEachActiveTenant(() => runIsolirDueJob());
+}
+
 export function startIsolirScheduler() {
   if (process.env.FREERADIUS_ISOLIR_CRON === "0") return;
   if (process.env.NODE_ENV !== "production" && process.env.FREERADIUS_ISOLIR_CRON !== "1") {
@@ -129,7 +135,7 @@ export function startIsolirScheduler() {
   const g = globalThis as SchedulerGlobal;
   if (g.__nbIsolirTimer) return;
   g.__nbIsolirTimer = setInterval(() => {
-    void runIsolirDueJob().catch((error) => {
+    void runIsolirDueJobForAllTenants().catch((error) => {
       console.error("[isolir-job]", error);
     });
   }, INTERVAL_MS);

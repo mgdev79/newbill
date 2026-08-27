@@ -8,6 +8,13 @@ import {
   hasTenantCookie,
   jobTokenAuthorized,
 } from "@/lib/auth-cookies";
+import {
+  TENANT_ROOT_DOMAIN,
+  TENANT_SUBDOMAIN_HEADER,
+  isPlatformHost,
+  parseTenantSubdomainFromHost,
+  platformPublicOrigin,
+} from "@/lib/tenant-host";
 
 function isApiPath(pathname: string) {
   return pathname.startsWith("/api/");
@@ -30,6 +37,7 @@ function isPublicPath(pathname: string) {
   if (pathname === "/signup" || pathname.startsWith("/signup/")) return true;
   if (pathname === "/saas/login") return true;
   if (pathname === "/client/login") return true;
+  if (pathname === "/tenant-required") return true;
   if (pathname === "/api/v1/login") return true;
   if (pathname === "/api/v1/signup" || pathname.startsWith("/api/v1/signup/")) return true;
   if (pathname === "/api/v1/saas/login") return true;
@@ -42,10 +50,62 @@ function isPublicPath(pathname: string) {
   return false;
 }
 
+function isPlatformOnlyPath(pathname: string) {
+  if (pathname === "/saas" || pathname.startsWith("/saas/")) return true;
+  if (pathname === "/client" || pathname.startsWith("/client/")) return true;
+  if (pathname === "/signup" || pathname.startsWith("/signup/")) return true;
+  if (pathname.startsWith("/api/v1/saas/")) return true;
+  if (pathname.startsWith("/api/v1/client/")) return true;
+  if (pathname.startsWith("/api/v1/signup")) return true;
+  if (pathname.startsWith("/api/v1/platform/")) return true;
+  if (pathname.startsWith("/platform/billing/")) return true;
+  return false;
+}
+
+function isOperatorPath(pathname: string) {
+  if (isPlatformOnlyPath(pathname) || isPublicPath(pathname)) return false;
+  return true;
+}
+
+function nextWithTenant(request: NextRequest, tenantSub: string | null) {
+  if (!tenantSub) return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(TENANT_SUBDOMAIN_HEADER, tenantSub);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+function redirectToPlatform(request: NextRequest, pathname: string) {
+  const url = new URL(pathname + request.nextUrl.search, platformPublicOrigin());
+  return NextResponse.redirect(url);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host");
+  const tenantSub = parseTenantSubdomainFromHost(host);
+  const onPlatformHost = isPlatformHost(host);
+
+  if (tenantSub && isPlatformOnlyPath(pathname)) {
+    return redirectToPlatform(request, pathname);
+  }
+
+  if (onPlatformHost && isOperatorPath(pathname) && !isPublicPath(pathname)) {
+    if (isApiPath(pathname)) {
+      return NextResponse.json(
+        {
+          error: `Panel operator membutuhkan subdomain tenant (mis. tenant-a.${TENANT_ROOT_DOMAIN}).`,
+        },
+        { status: 400 },
+      );
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/tenant-required";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return nextWithTenant(request, tenantSub);
   }
 
   const saasOk = hasSaasAdminCookie(request.cookies.get(SAAS_COOKIE)?.value);
@@ -71,19 +131,20 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/v1/license")) {
-    if (saasOk || operatorOk) return NextResponse.next();
+    if (saasOk || operatorOk) return nextWithTenant(request, tenantSub);
     return deny(request, "/login");
   }
 
   if (pathname.startsWith("/api/v1/jobs/")) {
-    if (operatorOk || jobTokenAuthorized(request)) return NextResponse.next();
+    if (operatorOk || jobTokenAuthorized(request)) return nextWithTenant(request, tenantSub);
     return deny(request, "/login");
   }
 
   if (!operatorOk) {
     return deny(request, "/login");
   }
-  return NextResponse.next();
+
+  return nextWithTenant(request, tenantSub);
 }
 
 export const config = {

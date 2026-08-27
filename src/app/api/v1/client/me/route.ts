@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantSession, publicTenant, publicVpnAccount } from "@/lib/saas";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 
 export const runtime = "nodejs";
 

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import type { GatewayProvider } from "@/server/gateway-settle";
 
 export type PlatformGatewaySettingPublic = {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
@@ -21,6 +21,7 @@ function publicStaff(row: {
 }
 
 export async function GET() {
+  const prisma = await getDb();
   let rows = await prisma.staffUser.findMany({ orderBy: { username: "asc" } });
   if (!rows.length) {
     const created = await prisma.staffUser.create({
@@ -36,6 +37,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     username?: string;
     password?: string;

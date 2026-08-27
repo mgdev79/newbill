@@ -1,4 +1,4 @@
-import type { Nas } from "@prisma/client";
+import type { Nas } from "@/generated/tenant";
 import { toPublicNas, type NasPublic } from "@/lib/nas-dto";
 import { listNasRadiusPorts } from "@/server/freeradius-sync";
 import { getRadiusCoaPort } from "@/server/radius-engine";

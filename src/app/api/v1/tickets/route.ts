@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const status = new URL(request.url).searchParams.get("status");
   const rows = await prisma.ticket.findMany({
     where: status ? { status } : undefined,
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as { subject?: string; customer?: string; body?: string };
   if (!body.subject?.trim()) {
     return NextResponse.json({ error: "Subjek wajib." }, { status: 400 });

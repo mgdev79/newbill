@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import {
   OPERATOR_COOKIE,
@@ -25,6 +25,7 @@ function envCredentialsMatch(username: string, password: string) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as { username?: string; password?: string };
   const username = body.username?.trim() ?? "";
   const password = body.password ?? "";
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const prisma = await getDb();
   const jar = await cookies();
   const value = jar.get(OPERATOR_COOKIE)?.value;
   if (!hasOperatorCookie(value)) {

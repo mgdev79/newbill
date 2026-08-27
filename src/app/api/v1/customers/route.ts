@@ -5,7 +5,7 @@ import {
   makeMemberId,
   splitInclusiveTax,
 } from "@/lib/billing";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { syncCustomerById } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
@@ -132,6 +132,7 @@ function mapInvoice(inv: {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
   const q = url.searchParams.get("q")?.trim();
@@ -184,6 +185,7 @@ export async function GET(request: Request) {
  * Alur Mixradius: POST tambah pelanggan → buat invoice (paid/unpaid) → receipt UI.
  */
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     kind?: string;
     name?: string;

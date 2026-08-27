@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { syncVoucherById } from "@/server/radius-hooks";
 import {
   generateVoucherCode,
@@ -58,6 +58,7 @@ function mapRow(row: {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
   const q = url.searchParams.get("q")?.trim();
@@ -77,6 +78,7 @@ export async function GET(request: Request) {
  * Generate batch voucher (Mixradius: POST /rad-vouchers/voucher-post).
  */
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     kind?: string;
     nasId?: string;

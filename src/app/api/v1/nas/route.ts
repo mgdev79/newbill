@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { parseNasBody } from "@/lib/nas-dto";
 import { onlineUsersByNas } from "@/server/nas-online";
 import { mergeNasPublic, nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
@@ -9,6 +9,7 @@ import { syncNasByRecord } from "@/server/radius-hooks";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const prisma = await getDb();
   const rows = await prisma.nas.findMany({ orderBy: { name: "asc" } });
   const [index, online, incoming, suggestedRadiusIp] = await Promise.all([
     nasPortsIndex(),
@@ -30,6 +31,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = parseNasBody(await request.json());
   if (!body.name || !body.ip) {
     return NextResponse.json({ error: "Nama dan IP router wajib diisi." }, { status: 400 });

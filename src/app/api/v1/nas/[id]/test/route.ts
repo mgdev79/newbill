@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { testMikrotikApi } from "@/server/mikrotik/api";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const row = await prisma.nas.findUnique({ where: { id } });
   if (!row) return NextResponse.json({ error: "Router tidak ditemukan." }, { status: 404 });

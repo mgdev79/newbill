@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { frQuery, isFreeradiusConfigured } from "@/server/freeradius-db";
 import type { RowDataPacket } from "mysql2";
 
@@ -35,6 +35,7 @@ function asIso(value: Date | string | null | undefined) {
 }
 
 export async function listLiveSessions(kind?: string): Promise<LiveSession[]> {
+  const prisma = await getDb();
   const map = new Map<string, LiveSession>();
 
   const local = await prisma.radAcct.findMany({
@@ -112,6 +113,7 @@ export async function listLiveSessions(kind?: string): Promise<LiveSession[]> {
 
 /** Gabung sesi aktif SQLite + radacct FreeRADIUS, unik per session id. */
 export async function onlineUsersByNas(nasRows: { id: string; ip: string }[]) {
+  const prisma = await getDb();
   const counts = new Map<string, number>();
   const sets = new Map<string, Set<string>>();
   const byIp = new Map<string, string>();

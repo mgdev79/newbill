@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { makeInvoiceNumber, splitInclusiveTax } from "@/lib/billing";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { parseValidityToExpiry } from "@/lib/voucher-code";
 import { syncCustomerById } from "@/server/radius-hooks";
 
@@ -10,6 +10,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.customer.findUnique({
     where: { id },

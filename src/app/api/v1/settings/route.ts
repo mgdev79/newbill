@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const prefix = url.searchParams.get("prefix") ?? "";
   const keys = url.searchParams.get("keys");
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as { entries?: Record<string, string>; key?: string; value?: string };
   const entries = body.entries ?? (body.key ? { [body.key]: body.value ?? "" } : null);
   if (!entries || !Object.keys(entries).length) {

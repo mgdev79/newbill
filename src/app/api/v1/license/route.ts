@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { getBillingTenant, maskSecret } from "@/lib/saas";
 
 export const runtime = "nodejs";
 
 /**
  * Setara Mixradius GET /rad-licence/details (+ status layanan).
- * Panel operator membaca lisensi tenant billing yang dikonfigurasi di SaaS.
+ * Panel operator membaca lisensi tenant subdomain saat ini.
  */
 export async function GET() {
   const tenant = await getBillingTenant();
   if (!tenant) {
     return NextResponse.json(
-      { error: "Tenant billing belum dikonfigurasi di SaaS." },
+      { error: "Tenant belum ditemukan untuk subdomain ini." },
       { status: 404 },
     );
   }
 
+  const prisma = await getDb();
   const [routerUsed, sessionUsed, customerUsed, voucherUsed, radiusSetting] =
     await Promise.all([
       prisma.nas.count({ where: { enabled: true } }),

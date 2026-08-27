@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { BILLING_TENANT_SETTING } from "@/lib/saas";
 
 export const runtime = "nodejs";
 
-/** Tenant mana yang lisensinya dipakai panel operator (/settings/license). */
+/** Override tenant lisensi demo di SaaS (opsional; default = subdomain request). */
 export async function GET() {
-  const setting = await prisma.appSetting.findUnique({
+  const setting = await prisma.platformSetting.findUnique({
     where: { key: BILLING_TENANT_SETTING },
   });
   const code = setting?.value || "ariyana";
@@ -28,7 +28,7 @@ export async function PUT(request: Request) {
   if (!tenant) {
     return NextResponse.json({ error: "Tenant tidak ditemukan." }, { status: 404 });
   }
-  await prisma.appSetting.upsert({
+  await prisma.platformSetting.upsert({
     where: { key: BILLING_TENANT_SETTING },
     create: { key: BILLING_TENANT_SETTING, value: tenant.code },
     update: { value: tenant.code },

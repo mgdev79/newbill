@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -48,6 +48,7 @@ function paidAtRange(from?: string | null, to?: string | null) {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
   const from = url.searchParams.get("from");

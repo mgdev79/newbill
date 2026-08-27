@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 /** Setara aksi RESTART Core Radius di Mixradius Info Lisensi. */
 export async function POST() {
+  const prisma = await getDb();
   await prisma.appSetting.upsert({
     where: { key: "core_radius_status" },
     create: { key: "core_radius_status", value: "running" },

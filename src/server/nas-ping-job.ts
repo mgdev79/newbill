@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { testMikrotikApi } from "@/server/mikrotik/api";
+import { forEachActiveTenant } from "@/server/tenant-jobs";
 
 const INTERVAL_MS = Number(process.env.NAS_PING_INTERVAL_MS ?? 5 * 60 * 1000);
 
@@ -15,6 +16,7 @@ export async function pingNas(row: {
   timeoutSec: number;
   lastSeenAt: Date | null;
 }) {
+  const prisma = await getDb();
   if (!row.apiPassword) {
     await prisma.nas.update({
       where: { id: row.id },
@@ -48,6 +50,7 @@ export async function pingNas(row: {
 }
 
 export async function runNasPingJob() {
+  const prisma = await getDb();
   const rows = await prisma.nas.findMany({
     where: { enabled: true },
     orderBy: { name: "asc" },
@@ -73,6 +76,10 @@ export async function runNasPingJob() {
   };
 }
 
+export async function runNasPingJobForAllTenants() {
+  return forEachActiveTenant(() => runNasPingJob());
+}
+
 export function startNasPingScheduler() {
   if (process.env.NAS_PING_CRON === "0") return;
   if (process.env.NODE_ENV !== "production" && process.env.NAS_PING_CRON !== "1") {
@@ -80,9 +87,9 @@ export function startNasPingScheduler() {
   }
   const g = globalThis as SchedulerGlobal;
   if (g.__nbNasPingTimer) return;
-  void runNasPingJob().catch((error) => console.error("[nas-ping]", error));
+  void runNasPingJobForAllTenants().catch((error) => console.error("[nas-ping]", error));
   g.__nbNasPingTimer = setInterval(() => {
-    void runNasPingJob().catch((error) => {
+    void runNasPingJobForAllTenants().catch((error) => {
       console.error("[nas-ping]", error);
     });
   }, INTERVAL_MS);

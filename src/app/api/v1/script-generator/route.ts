@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb, getRequestTenant } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { extractIpv4, randomApiUser, randomSecret } from "@/lib/nas-script";
 import { publicVpnAccount } from "@/lib/saas";
 import { nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
@@ -7,12 +8,12 @@ import { getRadiusPublicIp } from "@/server/radius-engine";
 
 export const runtime = "nodejs";
 
-async function getSetting(key: string, fallback: string) {
+async function getSetting(prisma: Awaited<ReturnType<typeof getDb>>, key: string, fallback: string) {
   const row = await prisma.appSetting.findUnique({ where: { key } });
   return row?.value ?? fallback;
 }
 
-async function putSetting(key: string, value: string) {
+async function putSetting(prisma: Awaited<ReturnType<typeof getDb>>, key: string, value: string) {
   await prisma.appSetting.upsert({
     where: { key },
     update: { value },
@@ -21,22 +22,33 @@ async function putSetting(key: string, value: string) {
 }
 
 export async function GET() {
-  let apiUser = await getSetting("nasApiUser", "");
-  let apiPassword = await getSetting("nasApiPassword", "");
-  const radiusSecret = await getSetting("radiusSecret", process.env.RADIUS_SECRET ?? "testing123");
+  const prisma = await getDb();
+  const tenant = await getRequestTenant();
+  let apiUser = await getSetting(prisma, "nasApiUser", "");
+  let apiPassword = await getSetting(prisma, "nasApiPassword", "");
+  const radiusSecret = await getSetting(
+    prisma,
+    "radiusSecret",
+    process.env.RADIUS_SECRET ?? "testing123",
+  );
   if (!apiUser || !apiPassword) {
     apiUser = randomApiUser();
     apiPassword = radiusSecret;
-    await putSetting("nasApiUser", apiUser);
-    await putSetting("nasApiPassword", apiPassword);
+    await putSetting(prisma, "nasApiUser", apiUser);
+    await putSetting(prisma, "nasApiPassword", apiPassword);
   }
-  await putSetting("radiusSecret", radiusSecret);
+  await putSetting(prisma, "radiusSecret", radiusSecret);
+
+  const vpnPromise = tenant
+    ? platformPrisma.vpnAccount.findMany({
+        where: { tenantId: tenant.id },
+        include: { server: true },
+        orderBy: { label: "asc" },
+      })
+    : Promise.resolve([]);
 
   const [vpn, nasRows, index, incoming, radiusAddress] = await Promise.all([
-    prisma.vpnAccount.findMany({
-      include: { server: true },
-      orderBy: { label: "asc" },
-    }),
+    vpnPromise,
     prisma.nas.findMany({ orderBy: { name: "asc" } }),
     nasPortsIndex(),
     radiusIncomingPort(),
@@ -83,10 +95,11 @@ export async function GET() {
 }
 
 export async function POST() {
+  const prisma = await getDb();
   const apiUser = randomApiUser();
   const shared = randomSecret(16);
-  await putSetting("nasApiUser", apiUser);
-  await putSetting("nasApiPassword", shared);
-  await putSetting("radiusSecret", shared);
+  await putSetting(prisma, "nasApiUser", apiUser);
+  await putSetting(prisma, "nasApiPassword", shared);
+  await putSetting(prisma, "radiusSecret", shared);
   return NextResponse.json({ apiUser, apiPassword: shared, radiusSecret: shared });
 }

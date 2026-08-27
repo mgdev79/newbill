@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { removeVoucherRadius, syncVoucherById } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const body = (await request.json()) as {
     enabled?: boolean;
@@ -51,6 +52,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.voucher.findUnique({ where: { id } });
   await prisma.voucher.delete({ where: { id } }).catch(() => null);

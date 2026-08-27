@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   activateOnly,
   publicRadiusEngine,
@@ -12,6 +12,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.radiusEngine.findUnique({ where: { id } });
   if (!existing) {
@@ -69,6 +70,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   await prisma.radiusEngine.delete({ where: { id } }).catch(() => null);
   return new NextResponse(null, { status: 204 });

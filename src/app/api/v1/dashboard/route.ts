@@ -1,7 +1,8 @@
 import { statfs } from "node:fs/promises";
 import os from "node:os";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb, getRequestTenant } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { getCompanyProfile } from "@/lib/billing";
 import { listLiveSessions } from "@/server/nas-online";
 import { isFreeradiusConfigured } from "@/server/freeradius-db";
@@ -35,6 +36,8 @@ async function hostStats() {
 }
 
 export async function GET() {
+  const prisma = await getDb();
+  const tenant = await getRequestTenant();
   const today = startOfToday();
   const [
     sessions,
@@ -71,7 +74,9 @@ export async function GET() {
     }),
     prisma.customer.count({ where: { kind: "hotspot" } }),
     prisma.customer.count({ where: { kind: "ppp" } }),
-    prisma.vpnAccount.count({ where: { enabled: true } }),
+    tenant
+      ? platformPrisma.vpnAccount.count({ where: { tenantId: tenant.id, enabled: true } })
+      : Promise.resolve(0),
     prisma.voucher.count(),
     prisma.voucher.count({ where: { createdAt: { gte: today } } }),
     prisma.voucher.count({ where: { expiresAt: { lt: new Date() } } }),

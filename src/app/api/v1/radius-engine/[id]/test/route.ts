@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { publicRadiusEngine, testRadiusEngineConnection } from "@/server/radius-engine";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const row = await prisma.radiusEngine.findUnique({ where: { id } });
   if (!row) {

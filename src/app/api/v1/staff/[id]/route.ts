@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.staffUser.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
@@ -35,6 +36,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const row = await prisma.staffUser.findUnique({ where: { id } });
   if (row?.username === "admin") {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   activateOnly,
   ensureDefaultRadiusEngine,
@@ -31,12 +31,14 @@ function parseBody(body: RadiusEngineInput) {
 }
 
 export async function GET() {
+  const prisma = await getDb();
   await ensureDefaultRadiusEngine();
   const rows = await prisma.radiusEngine.findMany({ orderBy: { name: "asc" } });
   return NextResponse.json({ rows: rows.map(publicRadiusEngine) });
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as RadiusEngineInput;
   const data = parseBody(body);
   if (!data.dbHost || !data.dbUser) {

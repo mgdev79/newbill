@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -25,6 +25,7 @@ function paidWhere(from?: Date, to?: Date) {
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const url = new URL(request.url);
   const year = Number(url.searchParams.get("year")) || new Date().getFullYear();
   const from = new Date(year, 0, 1);

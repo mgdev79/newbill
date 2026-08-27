@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { settleGatewayPayment } from "@/server/gateway-settle";
 
 export type MidtransConfig = {
@@ -20,6 +20,7 @@ export type MidtransNotification = {
 };
 
 export async function getMidtransConfig(): Promise<MidtransConfig | null> {
+  const prisma = await getDb();
   const rows = await prisma.appSetting.findMany({
     where: {
       key: {
@@ -80,6 +81,7 @@ export async function midtransCreateSnap(input: {
   customer?: string;
   email?: string;
 }) {
+  const prisma = await getDb();
   const config = await getMidtransConfig();
   if (!config) return { ok: false as const, error: "Server key Midtrans belum diisi." };
   const response = await fetch(`${snapBase(config.environment)}/snap/v1/transactions`, {
@@ -119,6 +121,7 @@ export async function midtransCreateSnap(input: {
 }
 
 export async function midtransGetStatus(orderId: string) {
+  const prisma = await getDb();
   const config = await getMidtransConfig();
   if (!config) return null;
   const response = await fetch(`${apiBase(config.environment)}/v2/${encodeURIComponent(orderId)}/status`, {
@@ -129,6 +132,7 @@ export async function midtransGetStatus(orderId: string) {
 }
 
 export async function settleMidtransNotification(body: MidtransNotification) {
+  const prisma = await getDb();
   const paid = isMidtransPaid(body);
   const failed = ["deny", "cancel", "expire", "failure"].includes(body.transaction_status);
   if (!paid && !failed) {

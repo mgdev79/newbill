@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,7 @@ function mapRow(row: { id: string; at: Date; actor: string; message: string; kin
 }
 
 export async function GET(request: Request) {
+  const prisma = await getDb();
   const kind = new URL(request.url).searchParams.get("kind") ?? "";
   if (!KINDS.has(kind)) {
     return NextResponse.json({ error: "kind wajib: login|activity|bg|whatsapp." }, { status: 400 });
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as { kind?: string; actor?: string; message?: string };
   if (!body.kind || !KINDS.has(body.kind)) {
     return NextResponse.json({ error: "kind wajib: login|activity|bg|whatsapp." }, { status: 400 });

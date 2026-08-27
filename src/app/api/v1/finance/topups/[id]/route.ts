@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -7,6 +7,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.financeTopup.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Topup tidak ditemukan." }, { status: 404 });
@@ -32,6 +33,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   await prisma.financeTopup.delete({ where: { id } }).catch(() => null);
   return new NextResponse(null, { status: 204 });

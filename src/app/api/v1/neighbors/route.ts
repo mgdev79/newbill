@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function GET() {
+  const prisma = await getDb();
   const rows = await prisma.neighbor.findMany({ orderBy: { identity: "asc" } });
   return NextResponse.json({ rows });
 }
 
 export async function POST(request: Request) {
+  const prisma = await getDb();
   const body = (await request.json()) as {
     identity?: string;
     address?: string;

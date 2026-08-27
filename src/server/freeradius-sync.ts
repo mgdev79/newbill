@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { Nas } from "@prisma/client";
+import type { Nas } from "@/generated/tenant";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { acctPortFor, nextAuthPort } from "@/lib/nas-ports";
 import {

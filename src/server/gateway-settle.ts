@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { syncCustomerById } from "@/server/radius-hooks";
 
 export type GatewayProvider = "duitku" | "xendit" | "midtrans" | "nicepay";
 
 export async function getActiveGatewayProvider(): Promise<GatewayProvider> {
+  const prisma = await getDb();
   const row = await prisma.appSetting.findUnique({ where: { key: "gateway.provider" } });
   const value = row?.value ?? "duitku";
   if (value === "xendit" || value === "midtrans" || value === "nicepay" || value === "duitku") {
@@ -19,6 +20,7 @@ export async function settleGatewayPayment(input: {
   note: string;
   method: string;
 }) {
+  const prisma = await getDb();
   const status = input.paid ? "paid" : "failed";
   const txn = await prisma.paymentTxn.findUnique({ where: { ref: input.ref } });
   if (txn) {

@@ -1,4 +1,4 @@
-import type { Nas } from "@prisma/client";
+import type { Nas } from "@/generated/tenant";
 
 export type NasPublic = {
   id: string;

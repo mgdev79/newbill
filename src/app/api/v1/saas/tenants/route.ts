@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { publicTenant } from "@/lib/saas";
+import { createPlatformTenant } from "@/server/tenant-signup";
 
 export const runtime = "nodejs";
 
@@ -43,21 +44,18 @@ export async function POST(request: Request) {
   if (!plan) return NextResponse.json({ error: "Paket tidak ditemukan." }, { status: 404 });
 
   try {
-    const row = await prisma.tenant.create({
-      data: {
-        code: body.code.trim().toLowerCase(),
-        name: body.name.trim(),
-        email: body.email.trim().toLowerCase(),
-        password: body.password,
-        phone: body.phone?.trim() ?? "",
-        planId: body.planId,
-        status: body.status || "active",
-        billingUrl: body.billingUrl?.trim() ?? "",
-        radiusPublicIp: body.radiusPublicIp?.trim() ?? "",
-        notes: body.notes?.trim() ?? "",
-        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
-      },
-      include: { plan: true },
+    const row = await createPlatformTenant({
+      code: body.code,
+      name: body.name,
+      email: body.email,
+      password: body.password,
+      phone: body.phone,
+      planId: body.planId,
+      status: body.status,
+      billingUrl: body.billingUrl,
+      radiusPublicIp: body.radiusPublicIp,
+      notes: body.notes,
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
     });
     return NextResponse.json({ row: publicTenant(row) }, { status: 201 });
   } catch {

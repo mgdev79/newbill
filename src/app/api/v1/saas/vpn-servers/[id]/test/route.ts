@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { testMikrotikApi } from "@/server/mikrotik/api";
 
 export const runtime = "nodejs";

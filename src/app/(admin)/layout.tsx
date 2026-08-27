@@ -1,11 +1,25 @@
-"use client";
+import { notFound, redirect } from "next/navigation";
+import { platformPrisma } from "@/lib/platform-db";
+import { getTenantSubdomainHeader } from "@/lib/tenant-context";
+import { AdminShell } from "./admin-shell";
 
-import { AppShell } from "@/components/app-shell";
-
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  const sub = await getTenantSubdomainHeader();
+  if (!sub) {
+    redirect("/tenant-required");
+  }
+
+  const tenant = await platformPrisma.tenant.findUnique({
+    where: { code: sub },
+    select: { id: true, status: true },
+  });
+  if (!tenant) {
+    notFound();
+  }
+
+  return <AdminShell>{children}</AdminShell>;
 }

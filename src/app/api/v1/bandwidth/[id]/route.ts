@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { resyncUsersOnBandwidth } from "@/server/radius-hooks";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.bandwidth.findUnique({ where: { id } });
   if (!existing) {
@@ -37,6 +38,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const used = await prisma.plan.count({ where: { bandwidthId: id } });
   if (used > 0) {

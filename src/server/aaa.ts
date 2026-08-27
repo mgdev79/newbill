@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { customerRadiusPolicy, voucherRadiusPolicy } from "@/server/radius-policy";
 
 export type RadiusRequest = {
@@ -26,6 +26,7 @@ function normalizeMac(value?: string) {
 }
 
 async function log(username: string, result: string, message: string, nasIp?: string) {
+  const prisma = await getDb();
   await prisma.radiusLog.create({
     data: { username, result, message, nasIp: nasIp ?? "" },
   });
@@ -36,6 +37,7 @@ async function log(username: string, result: string, message: string, nasIp?: st
  * Auth UDP live dipegang FreeRADIUS; fungsi ini tidak menulis radcheck.
  */
 export async function authorize(input: RadiusRequest): Promise<AuthorizeResult> {
+  const prisma = await getDb();
   const username = input.username.trim();
   const customer = await prisma.customer.findUnique({
     where: { username },
@@ -120,6 +122,7 @@ export async function accounting(input: {
   outputOctets?: number;
   sessionTime?: number;
 }) {
+  const prisma = await getDb();
   const customer = await prisma.customer.findUnique({
     where: { username: input.username },
   });

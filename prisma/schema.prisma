@@ -1,3 +1,6 @@
+// Legacy monolith schema — production rollout: gunakan prisma/platform + prisma/tenant.
+// Migrasi: npx tsx scripts/migrate-legacy-db.ts --source=prisma/prod.db --tenant=KODE
+
 generator client {
   provider = "prisma-client-js"
 }

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { activateTenantSignup } from "@/server/tenant-signup";
 
 /** Settlement khusus signup tenant. Jangan campur dengan settleGatewayPayment (invoice/e-voucher ISP). */

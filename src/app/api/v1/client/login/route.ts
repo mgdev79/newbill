@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 import { TENANT_COOKIE, clearCookieOptions, cookieOptions } from "@/lib/auth-cookies";
 import { publicTenant } from "@/lib/saas";
 

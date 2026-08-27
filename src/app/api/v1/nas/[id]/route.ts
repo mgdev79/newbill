@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { parseNasBody } from "@/lib/nas-dto";
 import { mergeNasPublic, nasPortsIndex } from "@/server/nas-radius-view";
 import { onlineUsersByNas } from "@/server/nas-online";
@@ -11,6 +11,7 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const row = await prisma.nas.findUnique({ where: { id } });
   if (!row) return NextResponse.json({ error: "Router tidak ditemukan." }, { status: 404 });
@@ -25,6 +26,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.nas.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Router tidak ditemukan." }, { status: 404 });
@@ -89,6 +91,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const prisma = await getDb();
   const { id } = await context.params;
   const existing = await prisma.nas.findUnique({ where: { id } });
   const groups = await prisma.profileGroup.count({ where: { nasId: id } });

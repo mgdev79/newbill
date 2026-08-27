@@ -1,6 +1,6 @@
 import mysql from "mysql2/promise";
-import type { RadiusEngine } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import type { RadiusEngine } from "@/generated/tenant";
+import { getDb } from "@/lib/db";
 import { RADIUS_INCOMING_PORT } from "@/lib/nas-ports";
 
 export type RadiusEnginePublic = {
@@ -112,6 +112,7 @@ export function radiusEngineConfigHash(row: Pick<RadiusEngine, "dbHost" | "dbPor
 }
 
 export async function ensureDefaultRadiusEngine() {
+  const prisma = await getDb();
   const existing = await prisma.radiusEngine.findFirst({ orderBy: { name: "asc" } });
   if (existing) return existing;
   const fromEnv = engineFieldsFromEnv();
@@ -139,6 +140,7 @@ export async function ensureDefaultRadiusEngine() {
 }
 
 export async function getActiveRadiusEngine() {
+  const prisma = await getDb();
   await ensureDefaultRadiusEngine();
   const active = await prisma.radiusEngine.findFirst({
     where: { active: true },
@@ -160,6 +162,7 @@ export async function getRadiusCoaPort() {
 }
 
 export async function activateOnly(id: string) {
+  const prisma = await getDb();
   await prisma.$transaction([
     prisma.radiusEngine.updateMany({ data: { active: false } }),
     prisma.radiusEngine.update({ where: { id }, data: { active: true } }),
@@ -173,6 +176,7 @@ export async function testMysqlConnection(input: {
   dbUser: string;
   dbPassword: string;
 }) {
+  const prisma = await getDb();
   const conn = await mysql.createConnection({
     host: input.dbHost,
     port: input.dbPort,

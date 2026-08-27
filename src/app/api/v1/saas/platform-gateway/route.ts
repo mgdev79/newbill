@@ -5,7 +5,7 @@ import {
 } from "@/server/platform-gateway-settings";
 import { platformGatewayCallbackUrl, platformPublicOrigin } from "@/lib/tenant-host";
 import type { GatewayProvider } from "@/server/gateway-settle";
-import { prisma } from "@/lib/db";
+import { platformPrisma as prisma } from "@/lib/platform-db";
 
 export const runtime = "nodejs";
 

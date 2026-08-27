@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { getBillingTenant } from "@/lib/saas";
 import { tenantPublicOrigin } from "@/lib/tenant-host";
 import { settleGatewayPayment } from "@/server/gateway-settle";
@@ -11,6 +11,7 @@ export type XenditConfig = {
 };
 
 export async function getXenditConfig(): Promise<XenditConfig | null> {
+  const prisma = await getDb();
   const rows = await prisma.appSetting.findMany({
     where: { key: { in: ["gateway.xendit.api_secret", "gateway.xendit.webhook_token"] } },
   });

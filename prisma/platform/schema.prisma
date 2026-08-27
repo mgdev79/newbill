@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/platform"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("PLATFORM_DATABASE_URL")
+}
+
+model SaasPlan {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  code          String   @unique
+  priceMonth    Int      @default(0)
+  vpnQuota      Int      @default(1)
+  routerLimit   Int      @default(1)
+  customerLimit Int      @default(250)
+  voucherLimit  Int      @default(15000)
+  sessionLimit  Int      @default(300)
+  description   String   @default("")
+  tenants       Tenant[]
+}
+
+model Tenant {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  name           String
+  email          String       @unique
+  password       String
+  phone          String       @default("")
+  status         String       @default("active")
+  planId         String
+  plan           SaasPlan     @relation(fields: [planId], references: [id])
+  expiresAt      DateTime?
+  activatedAt    DateTime?
+  requestId      String       @default("")
+  hardwareId     String       @default("")
+  softwareKey    String       @default("")
+  sessionLimit   Int?
+  billingUrl     String       @default("")
+  radiusPublicIp String       @default("")
+  notes          String       @default("")
+  createdAt      DateTime     @default(now())
+  vpnAccounts    VpnAccount[]
+}
+
+model VpnServer {
+  id            String       @id @default(cuid())
+  name          String       @unique
+  host          String       @unique
+  region        String       @default("Indonesia")
+  online        Boolean      @default(true)
+  innerRadiusIp String       @default("")
+  note          String       @default("")
+  apiPort       Int          @default(8728)
+  useSsl        Boolean      @default(false)
+  timeoutSec    Int          @default(5)
+  apiUser       String       @default("newbill")
+  apiPassword   String       @default("")
+  lastSeenAt    DateTime?
+  lastError     String       @default("")
+  accounts      VpnAccount[]
+}
+
+model VpnAccount {
+  id            String     @id @default(cuid())
+  label         String
+  username      String
+  password      String     @default("")
+  type          String     @default("l2tp")
+  innerRadiusIp String     @default("")
+  note          String     @default("")
+  enabled       Boolean    @default(true)
+  tenantId      String?
+  tenant        Tenant?    @relation(fields: [tenantId], references: [id])
+  serverId      String?
+  server        VpnServer? @relation(fields: [serverId], references: [id])
+  serverHost    String     @default("")
+}
+
+model PlatformSetting {
+  key   String @id
+  value String
+}
+
+/** Merchant payment gateway platform (signup tenant). Bukan gateway.duitku.* milik ISP. */
+model PlatformGatewaySetting {
+  id                  String   @id @default("platform")
+  provider            String   @default("duitku")
+  duitkuEnvironment   String   @default("sandbox")
+  duitkuMerchantCode  String   @default("")
+  duitkuApiKey        String   @default("")
+  xenditApiSecret     String   @default("")
+  xenditWebhookToken  String   @default("")
+  nicepayMerchantId   String   @default("")
+  nicepayMerchantKey  String   @default("")
+  midtransEnvironment String   @default("sandbox")
+  midtransClientKey   String   @default("")
+  midtransServerKey   String   @default("")
+  updatedAt           DateTime @updatedAt
+}
+
+model TenantSignupOrder {
+  id                String   @id @default(cuid())
+  name              String
+  email             String
+  password          String
+  phone             String   @default("")
+  subdomain         String
+  planId            String
+  planName          String   @default("")
+  amount            Int      @default(0)
+  paymentChannel    String   @default("")
+  status            String   @default("pending")
+  paymentRef        String   @default("")
+  activatedTenantId String   @default("")
+  note              String   @default("")
+  createdAt         DateTime @default(now())
+}

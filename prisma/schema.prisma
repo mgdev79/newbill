@@ -401,3 +401,38 @@ model RadiusEngine {
   lastTestAt      DateTime?
   lastTestError   String    @default("")
 }
+
+/** Merchant payment gateway platform (signup tenant). Bukan gateway.duitku.* milik ISP. */
+model PlatformGatewaySetting {
+  id                   String   @id @default("platform")
+  provider             String   @default("duitku")
+  duitkuEnvironment    String   @default("sandbox")
+  duitkuMerchantCode   String   @default("")
+  duitkuApiKey         String   @default("")
+  xenditApiSecret      String   @default("")
+  xenditWebhookToken   String   @default("")
+  nicepayMerchantId    String   @default("")
+  nicepayMerchantKey   String   @default("")
+  midtransEnvironment  String   @default("sandbox")
+  midtransClientKey    String   @default("")
+  midtransServerKey    String   @default("")
+  updatedAt            DateTime @updatedAt
+}
+
+model TenantSignupOrder {
+  id                  String   @id @default(cuid())
+  name                String
+  email               String
+  password            String
+  phone               String   @default("")
+  subdomain           String
+  planId              String
+  planName            String   @default("")
+  amount              Int      @default(0)
+  paymentChannel      String   @default("")
+  status              String   @default("pending")
+  paymentRef          String   @default("")
+  activatedTenantId   String   @default("")
+  note                String   @default("")
+  createdAt           DateTime @default(now())
+}

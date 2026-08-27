@@ -169,6 +169,8 @@ export const saasNavGroups: NavGroup[] = [
   { label: "VPN server", icon: Server, href: "/saas/vpn-servers" },
   { label: "Radius Engine", icon: Radio, href: "/saas/radius-engine" },
   { label: "Paket SaaS", icon: Package, href: "/saas/plans" },
+  { label: "Order signup", icon: Receipt, href: "/saas/signup-orders" },
+  { label: "Gateway platform", icon: Wallet, href: "/saas/platform-gateway" },
 ];
 
 export function pathMatches(pathname: string, href: string) {

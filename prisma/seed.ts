@@ -254,6 +254,7 @@ async function main() {
     ],
   });
 
+  await prisma.tenantSignupOrder.deleteMany();
   await prisma.vpnAccount.deleteMany();
   await prisma.tenant.deleteMany();
   // Jangan hapus VpnServer — upsert supaya password/API user yang diisi admin tidak hilang tiap seed.

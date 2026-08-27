@@ -27,14 +27,18 @@ function isPublicPath(pathname: string) {
   if (pathname === "/gate" || pathname.startsWith("/gate/")) return true;
   if (pathname === "/e-voucher" || pathname.startsWith("/e-voucher/")) return true;
   if (pathname === "/login") return true;
+  if (pathname === "/signup" || pathname.startsWith("/signup/")) return true;
   if (pathname === "/saas/login") return true;
   if (pathname === "/client/login") return true;
   if (pathname === "/api/v1/login") return true;
+  if (pathname === "/api/v1/signup" || pathname.startsWith("/api/v1/signup/")) return true;
   if (pathname === "/api/v1/saas/login") return true;
   if (pathname === "/api/v1/client/login") return true;
   if (pathname.startsWith("/api/v1/member/")) return true;
   if (pathname.startsWith("/billing/")) return true;
+  if (pathname.startsWith("/platform/billing/")) return true;
   if (/^\/api\/v1\/payments\/[^/]+\/callback\/?$/.test(pathname)) return true;
+  if (/^\/api\/v1\/platform\/payments\/[^/]+\/callback\/?$/.test(pathname)) return true;
   return false;
 }
 

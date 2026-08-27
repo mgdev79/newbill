@@ -46,6 +46,22 @@ const nextConfig: NextConfig = {
         source: "/billing/nicepay-checkout.php",
         destination: "/api/v1/payments/nicepay/callback",
       },
+      {
+        source: "/platform/billing/duitku-checkout.php",
+        destination: "/api/v1/platform/payments/duitku/callback",
+      },
+      {
+        source: "/platform/billing/xendit-checkout.php",
+        destination: "/api/v1/platform/payments/xendit/callback",
+      },
+      {
+        source: "/platform/billing/midtrans-checkout.php",
+        destination: "/api/v1/platform/payments/midtrans/callback",
+      },
+      {
+        source: "/platform/billing/nicepay-checkout.php",
+        destination: "/api/v1/platform/payments/nicepay/callback",
+      },
     ];
   },
 };

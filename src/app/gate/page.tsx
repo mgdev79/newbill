@@ -22,6 +22,13 @@ const portals = [
     creds: "StaffUser atau OPERATOR_ADMIN_*",
     tone: "bg-teal-900 text-teal-50 border-teal-800",
   },
+  {
+    href: "/signup",
+    title: "Daftar tenant",
+    desc: "Self-signup + bayar gateway platform dulu, baru akun aktif.",
+    creds: "/signup",
+    tone: "bg-amber-900 text-amber-50 border-amber-800",
+  },
 ];
 
 export default function GatePage() {
@@ -34,7 +41,7 @@ export default function GatePage() {
           Tiga portal terpisah. Pastikan <code className="rounded bg-slate-200 px-1">npm run dev</code>{" "}
           berjalan. Paket RADIUS UDP dijawab FreeRADIUS, bukan proses Node.
         </p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {portals.map((portal) => (
             <Link
               key={portal.href}

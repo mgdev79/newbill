@@ -18,3 +18,22 @@ export function gatewayCheckoutPath(provider: "duitku" | "xendit" | "midtrans" |
 export function gatewayCallbackUrl(code: string, provider: "duitku" | "xendit" | "midtrans" | "nicepay") {
   return `${tenantPublicOrigin(code)}${gatewayCheckoutPath(provider)}`;
 }
+
+/** Origin platform (bukan subdomain tenant). Dipakai callback signup SaaS. */
+export function platformPublicOrigin() {
+  const fromEnv = (process.env.NEXT_PUBLIC_PLATFORM_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  return `https://${TENANT_ROOT_DOMAIN}`;
+}
+
+export function platformGatewayCheckoutPath(provider: "duitku" | "xendit" | "midtrans" | "nicepay") {
+  return `/platform/billing/${provider}-checkout.php`;
+}
+
+export function platformGatewayCallbackUrl(provider: "duitku" | "xendit" | "midtrans" | "nicepay") {
+  return `${platformPublicOrigin()}${platformGatewayCheckoutPath(provider)}`;
+}
+
+export function platformSignupReturnUrl() {
+  return `${platformPublicOrigin()}/signup/thanks`;
+}

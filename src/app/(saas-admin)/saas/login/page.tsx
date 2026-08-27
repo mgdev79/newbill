@@ -62,6 +62,9 @@ export default function SaasLoginPage() {
         </Button>
         <p className="mt-3 text-center text-xs text-slate-400">Demo: saas / saas123</p>
         <div className="mt-4 flex justify-center gap-3 text-xs">
+          <Link href="/signup" className="text-indigo-700 hover:underline">
+            Daftar tenant
+          </Link>
           <Link href="/client/login" className="text-indigo-700 hover:underline">
             Client tenant
           </Link>

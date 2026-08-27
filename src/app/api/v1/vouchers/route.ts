@@ -7,6 +7,7 @@ import {
   randomBatchId,
   type CodeCombination,
 } from "@/lib/voucher-code";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -57,7 +58,7 @@ function mapRow(row: {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
@@ -72,12 +73,12 @@ export async function GET(request: Request) {
     take: q ? 20 : 500,
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
-}
+});
 
 /**
  * Generate batch voucher (Mixradius: POST /rad-vouchers/voucher-post).
  */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     kind?: string;
@@ -186,4 +187,4 @@ export async function POST(request: Request) {
     { rows: created, batchId, count: created.length, errors },
     { status: 201 },
   );
-}
+});

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { testRadiusEngineConnection } from "@/server/radius-engine";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     dbHost?: string;
     dbPort?: number;
@@ -43,4 +44,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
-}
+});

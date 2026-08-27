@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { testMikrotikApi } from "@/server/mikrotik/api";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -38,4 +39,4 @@ export async function POST(
   });
 
   return NextResponse.json(result);
-}
+});

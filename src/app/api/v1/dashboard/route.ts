@@ -6,6 +6,7 @@ import { platformPrisma } from "@/lib/platform-db";
 import { getCompanyProfile } from "@/lib/billing";
 import { listLiveSessions } from "@/server/nas-online";
 import { isFreeradiusConfigured } from "@/server/freeradius-db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,7 @@ async function hostStats() {
   };
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const tenant = await getRequestTenant();
   const today = startOfToday();
@@ -149,4 +150,4 @@ export async function GET() {
       isolated: expCustomer,
     },
   });
-}
+});

@@ -23,6 +23,7 @@ import {
   settlePlatformXenditWebhook,
   verifyXenditCallback,
 } from "@/server/platform-xendit";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -130,7 +131,7 @@ async function handleNicepay(request: Request) {
   return new NextResponse("OK", { status: 200 });
 }
 
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -142,9 +143,9 @@ export async function POST(
   if (provider === "xendit") return handleXendit(request);
   if (provider === "midtrans") return handleMidtrans(request);
   return handleNicepay(request);
-}
+});
 
-export async function GET(
+export const GET = withApiErrorHandling(async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -153,4 +154,4 @@ export async function GET(
     return NextResponse.json({ error: "Provider tidak dikenal." }, { status: 404 });
   }
   return NextResponse.json({ error: "Gunakan POST dari payment gateway." }, { status: 405 });
-}
+});

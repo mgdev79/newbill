@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const status = new URL(request.url).searchParams.get("status");
   const rows = await prisma.ticket.findMany({
@@ -21,9 +22,9 @@ export async function GET(request: Request) {
       })),
     })),
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as { subject?: string; customer?: string; body?: string };
   if (!body.subject?.trim()) {
@@ -38,4 +39,4 @@ export async function POST(request: Request) {
     include: { replies: true },
   });
   return NextResponse.json({ row: { ...row, createdAt: row.createdAt.toISOString() } }, { status: 201 });
-}
+});

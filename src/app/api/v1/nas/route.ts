@@ -5,10 +5,11 @@ import { onlineUsersByNas } from "@/server/nas-online";
 import { mergeNasPublic, nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
 import { getRadiusPublicIp } from "@/server/radius-engine";
 import { syncNasByRecord } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const rows = await prisma.nas.findMany({ orderBy: { name: "asc" } });
   const [index, online, incoming, suggestedRadiusIp] = await Promise.all([
@@ -28,9 +29,9 @@ export async function GET() {
       tableRefreshMs: 60_000,
     },
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = parseNasBody(await request.json());
   if (!body.name || !body.ip) {
@@ -84,4 +85,4 @@ export async function POST(request: Request) {
     { row: mergeNasPublic(row, index), radius },
     { status: 201 },
   );
-}
+});

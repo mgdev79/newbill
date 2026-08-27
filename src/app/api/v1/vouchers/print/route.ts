@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getCompanyProfile } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { renderVoucherTemplate } from "@/lib/voucher-template";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Cetak voucher memakai template HTML dari Pengaturan. */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     templateId?: string;
@@ -79,4 +80,4 @@ export async function POST(request: Request) {
     count: vouchers.length,
     html: page,
   });
-}
+});

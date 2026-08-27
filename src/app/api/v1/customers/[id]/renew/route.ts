@@ -3,10 +3,11 @@ import { makeInvoiceNumber, splitInclusiveTax } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { parseValidityToExpiry } from "@/lib/voucher-code";
 import { syncCustomerById } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -81,4 +82,4 @@ export async function POST(
     invoice: { id: result.invoice.id, number: result.invoice.number },
     radius,
   });
-}
+});

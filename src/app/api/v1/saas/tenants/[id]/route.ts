@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
 import { publicTenant, publicVpnAccount } from "@/lib/saas";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET(
+export const GET = withApiErrorHandling(async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -21,9 +22,9 @@ export async function GET(
     row: { ...publicTenant(row), vpnUsed: row.vpnAccounts.length },
     vpnAccounts: row.vpnAccounts.map(publicVpnAccount),
   });
-}
+});
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -79,9 +80,9 @@ export async function PATCH(
     include: { plan: true },
   });
   return NextResponse.json({ row: publicTenant(row) });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -89,4 +90,4 @@ export async function DELETE(
   await prisma.vpnAccount.deleteMany({ where: { tenantId: id } });
   await prisma.tenant.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
-}
+});

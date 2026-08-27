@@ -4,10 +4,11 @@ import {
   randomCaptchaCode,
   signCaptcha,
 } from "@/lib/member-captcha";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const code = randomCaptchaCode(6);
   const expMs = Date.now() + 5 * 60 * 1000;
   const token = signCaptcha(code, expMs);
@@ -26,4 +27,4 @@ export async function GET() {
     maxAge: 300,
   });
   return response;
-}
+});

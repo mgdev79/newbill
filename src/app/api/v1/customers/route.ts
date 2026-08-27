@@ -7,6 +7,7 @@ import {
 } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { syncCustomerById } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -131,7 +132,7 @@ function mapInvoice(inv: {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
@@ -179,12 +180,12 @@ export async function GET(request: Request) {
       registeredAt: registered.get(row.id) ?? null,
     })),
   });
-}
+});
 
 /**
  * Alur Mixradius: POST tambah pelanggan → buat invoice (paid/unpaid) → receipt UI.
  */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     kind?: string;
@@ -358,4 +359,4 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
-}
+});

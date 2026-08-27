@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -37,10 +38,10 @@ function publicOrder(row: {
   };
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const rows = await prisma.tenantSignupOrder.findMany({
     orderBy: { createdAt: "desc" },
     take: 200,
   });
   return NextResponse.json({ rows: rows.map(publicOrder) });
-}
+});

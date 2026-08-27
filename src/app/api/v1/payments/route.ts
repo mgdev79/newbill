@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { createGatewayCharge } from "@/server/gateway-charge";
 import { getActiveGatewayProvider, type GatewayProvider } from "@/server/gateway-settle";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,7 @@ function mapRow(row: {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const provider = new URL(request.url).searchParams.get("provider");
   const rows = await prisma.paymentTxn.findMany({
@@ -38,9 +39,9 @@ export async function GET(request: Request) {
     take: 500,
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     ref?: string;
@@ -106,4 +107,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Referensi sudah dipakai." }, { status: 409 });
   }
-}
+});

@@ -6,6 +6,7 @@ import {
   publicRadiusEngine,
   type RadiusEngineInput,
 } from "@/server/radius-engine";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -30,14 +31,14 @@ function parseBody(body: RadiusEngineInput) {
   };
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   await ensureDefaultRadiusEngine();
   const rows = await prisma.radiusEngine.findMany({ orderBy: { name: "asc" } });
   return NextResponse.json({ rows: rows.map(publicRadiusEngine) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as RadiusEngineInput;
   const data = parseBody(body);
@@ -65,4 +66,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Nama engine sudah dipakai." }, { status: 409 });
   }
-}
+});

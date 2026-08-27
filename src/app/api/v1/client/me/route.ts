@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getTenantSession, publicTenant, publicVpnAccount } from "@/lib/saas";
 import { platformPrisma as prisma } from "@/lib/platform-db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const session = await getTenantSession();
   if (!session) return NextResponse.json({ error: "Belum login." }, { status: 401 });
 
@@ -18,4 +19,4 @@ export async function GET() {
     tenant: publicTenant(session),
     vpnAccounts: vpnAccounts.map(publicVpnAccount),
   });
-}
+});

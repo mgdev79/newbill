@@ -5,6 +5,7 @@ import {
   syncNasByRecord,
   syncVoucherById,
 } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ function authorized(request: Request) {
   return header === `Bearer ${token}` || query === token;
 }
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   if (!authorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,4 +57,4 @@ export async function POST(request: Request) {
     vouchers: vouchers.length,
     errors,
   });
-}
+});

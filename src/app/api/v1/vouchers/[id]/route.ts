@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { removeVoucherRadius, syncVoucherById } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -46,9 +47,9 @@ export async function PATCH(
     row: { id: row.id, code: row.code, enabled: row.enabled, owner: row.owner },
     radius,
   });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -64,4 +65,4 @@ export async function DELETE(
     }
   }
   return new NextResponse(null, { status: 204 });
-}
+});

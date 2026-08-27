@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
 import { activateTenantSignup } from "@/server/tenant-signup";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -36,4 +37,4 @@ export async function POST(
       { status: 409 },
     );
   }
-}
+});

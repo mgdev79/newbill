@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
 import { publicVpnServer } from "@/lib/saas";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -60,9 +61,9 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "Nama atau host sudah dipakai." }, { status: 409 });
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -76,4 +77,4 @@ export async function DELETE(
   }
   await prisma.vpnServer.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
-}
+});

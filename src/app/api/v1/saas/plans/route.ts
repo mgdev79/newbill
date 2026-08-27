@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const rows = await prisma.saasPlan.findMany({
     include: { _count: { select: { tenants: true } } },
     orderBy: { priceMonth: "asc" },
@@ -23,9 +24,9 @@ export async function GET() {
       tenantCount: row._count.tenants,
     })),
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     name?: string;
     code?: string;
@@ -58,4 +59,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Nama atau kode sudah dipakai." }, { status: 409 });
   }
-}
+});

@@ -5,6 +5,7 @@ import { extractIpv4, randomApiUser, randomSecret } from "@/lib/nas-script";
 import { publicVpnAccount } from "@/lib/saas";
 import { nasPortsIndex, radiusIncomingPort } from "@/server/nas-radius-view";
 import { getRadiusPublicIp } from "@/server/radius-engine";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ async function putSetting(prisma: Awaited<ReturnType<typeof getDb>>, key: string
   });
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const tenant = await getRequestTenant();
   let apiUser = await getSetting(prisma, "nasApiUser", "");
@@ -92,9 +93,9 @@ export async function GET() {
       };
     }),
   });
-}
+});
 
-export async function POST() {
+export const POST = withApiErrorHandling(async function POST() {
   const prisma = await getDb();
   const apiUser = randomApiUser();
   const shared = randomSecret(16);
@@ -102,4 +103,4 @@ export async function POST() {
   await putSetting(prisma, "nasApiPassword", shared);
   await putSetting(prisma, "radiusSecret", shared);
   return NextResponse.json({ apiUser, apiPassword: shared, radiusSecret: shared });
-}
+});

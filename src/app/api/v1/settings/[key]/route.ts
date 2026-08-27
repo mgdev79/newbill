@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET(
+export const GET = withApiErrorHandling(async function GET(
   _request: Request,
   context: { params: Promise<{ key: string }> },
 ) {
@@ -12,9 +13,9 @@ export async function GET(
   const row = await prisma.appSetting.findUnique({ where: { key } });
   if (!row) return NextResponse.json({ key, value: "" });
   return NextResponse.json({ key: row.key, value: row.value });
-}
+});
 
-export async function PUT(
+export const PUT = withApiErrorHandling(async function PUT(
   request: Request,
   context: { params: Promise<{ key: string }> },
 ) {
@@ -28,4 +29,4 @@ export async function PUT(
     create: { key, value },
   });
   return NextResponse.json({ key: row.key, value: row.value });
-}
+});

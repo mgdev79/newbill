@@ -3,10 +3,11 @@ import { getCompanyProfile } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { removeRadiusUsername } from "@/server/freeradius-sync";
 import { syncCustomerById } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -92,9 +93,9 @@ export async function PATCH(
       { status: 409 },
     );
   }
-}
+});
 
-export async function GET(
+export const GET = withApiErrorHandling(async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -173,9 +174,9 @@ export async function GET(
 
   const company = await getCompanyProfile();
   return NextResponse.json({ row: base, invoice, company });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -201,4 +202,4 @@ export async function DELETE(
     );
   }
   return new NextResponse(null, { status: 204 });
-}
+});

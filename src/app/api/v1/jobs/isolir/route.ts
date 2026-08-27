@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runIsolirDueJob } from "@/server/isolir-job";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -11,14 +12,14 @@ function authorized(request: Request) {
   return header === `Bearer ${token}` || query === token;
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runIsolirDueJob();
   return NextResponse.json(result);
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   return GET(request);
-}
+});

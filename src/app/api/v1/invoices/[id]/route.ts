@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { syncCustomerById } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -48,4 +49,4 @@ export async function PATCH(
       method: row.method,
     },
   });
-}
+});

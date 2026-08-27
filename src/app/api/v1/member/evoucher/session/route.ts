@@ -2,10 +2,11 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCompanyProfile } from "@/lib/billing";
 import { verifyGateToken } from "@/lib/member-captcha";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const jar = await cookies();
   const gated = verifyGateToken(jar.get("nb_evoucher_gate")?.value);
   const action = jar.get("nb_evoucher_action")?.value === "check" ? "check" : "buy";
@@ -19,4 +20,4 @@ export async function GET() {
       phone: company.phone,
     },
   });
-}
+});

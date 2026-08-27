@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ function publicStaff(row: {
   };
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   let rows = await prisma.staffUser.findMany({ orderBy: { username: "asc" } });
   if (!rows.length) {
@@ -34,9 +35,9 @@ export async function GET() {
     rows = [created];
   }
   return NextResponse.json({ rows: rows.map(publicStaff) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     username?: string;
@@ -62,4 +63,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Username sudah dipakai." }, { status: 409 });
   }
-}
+});

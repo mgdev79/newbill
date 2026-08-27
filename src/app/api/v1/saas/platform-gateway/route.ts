@@ -6,10 +6,11 @@ import {
 import { platformGatewayCallbackUrl, platformPublicOrigin } from "@/lib/tenant-host";
 import type { GatewayProvider } from "@/server/gateway-settle";
 import { platformPrisma as prisma } from "@/lib/platform-db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const row = await getPlatformGatewaySetting();
   const provider = publicPlatformGatewaySetting(row).provider;
   return NextResponse.json({
@@ -17,9 +18,9 @@ export async function GET() {
     callbackUrl: provider ? platformGatewayCallbackUrl(provider) : "",
     origin: platformPublicOrigin(),
   });
-}
+});
 
-export async function PUT(request: Request) {
+export const PUT = withApiErrorHandling(async function PUT(request: Request) {
   const body = (await request.json()) as {
     provider?: string;
     duitkuEnvironment?: string;
@@ -59,4 +60,4 @@ export async function PUT(request: Request) {
     row: pub,
     callbackUrl: pub.provider ? platformGatewayCallbackUrl(pub.provider as GatewayProvider) : "",
   });
-}
+});

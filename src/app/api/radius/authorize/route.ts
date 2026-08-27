@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorize } from "@/server/aaa";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     username?: string;
     password?: string;
@@ -23,4 +24,4 @@ export async function POST(request: Request) {
     calledStationId: body.calledStationId,
   });
   return NextResponse.json(result);
-}
+});

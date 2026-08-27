@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ function mapRow(row: {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const from = url.searchParams.get("from");
@@ -40,9 +41,9 @@ export async function GET(request: Request) {
     rows: rows.map(mapRow),
     total: rows.reduce((sum, row) => sum + row.amount, 0),
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     at?: string;
@@ -63,4 +64,4 @@ export async function POST(request: Request) {
     },
   });
   return NextResponse.json({ row: mapRow(row) }, { status: 201 });
-}
+});

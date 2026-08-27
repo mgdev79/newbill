@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyGateToken } from "@/lib/member-captcha";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ const PAYMENT_CHANNELS = [
   { value: "QRIS", label: "QRIS [ Scan QR-Code ]" },
 ];
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const jar = await cookies();
   if (!verifyGateToken(jar.get("nb_evoucher_gate")?.value)) {
@@ -65,4 +66,4 @@ export async function GET() {
     domains,
     paymentChannels: PAYMENT_CHANNELS,
   });
-}
+});

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ function mapRow(row: { id: string; at: Date; actor: string; message: string; kin
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const kind = new URL(request.url).searchParams.get("kind") ?? "";
   if (!KINDS.has(kind)) {
@@ -27,9 +28,9 @@ export async function GET(request: Request) {
     take: 300,
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as { kind?: string; actor?: string; message?: string };
   if (!body.kind || !KINDS.has(body.kind)) {
@@ -46,4 +47,4 @@ export async function POST(request: Request) {
     },
   });
   return NextResponse.json({ row: mapRow(row) }, { status: 201 });
-}
+});

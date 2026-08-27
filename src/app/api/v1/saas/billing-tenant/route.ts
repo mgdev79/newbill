@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { platformPrisma as prisma } from "@/lib/platform-db";
 import { BILLING_TENANT_SETTING } from "@/lib/saas";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Override tenant lisensi demo di SaaS (opsional; default = subdomain request). */
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const setting = await prisma.platformSetting.findUnique({
     where: { key: BILLING_TENANT_SETTING },
   });
@@ -15,9 +16,9 @@ export async function GET() {
     select: { id: true, code: true, name: true, email: true },
   });
   return NextResponse.json({ code, tenant });
-}
+});
 
-export async function PUT(request: Request) {
+export const PUT = withApiErrorHandling(async function PUT(request: Request) {
   const body = (await request.json()) as { code?: string };
   if (!body.code?.trim()) {
     return NextResponse.json({ error: "Kode tenant wajib." }, { status: 400 });
@@ -34,4 +35,4 @@ export async function PUT(request: Request) {
     update: { value: tenant.code },
   });
   return NextResponse.json({ ok: true, code: tenant.code, tenantId: tenant.id });
-}
+});

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -16,13 +17,13 @@ async function withUsed<T extends { id: string; name: string }>(
   return rows.map((row) => ({ ...row, used: map.get(row.name) ?? 0 }));
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const rows = await prisma.odp.findMany({ orderBy: { name: "asc" } });
   return NextResponse.json({ rows: await withUsed(prisma, rows) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     name?: string;
@@ -52,4 +53,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Nama ODP sudah dipakai." }, { status: 409 });
   }
-}
+});

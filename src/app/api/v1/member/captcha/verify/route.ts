@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { signGate, verifyCaptchaToken } from "@/lib/member-captcha";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as { answer?: string; action?: string };
   const jar = await cookies();
   const token = jar.get("nb_captcha")?.value ?? "";
@@ -36,4 +37,4 @@ export async function POST(request: Request) {
   });
   response.cookies.delete("nb_captcha");
   return response;
-}
+});

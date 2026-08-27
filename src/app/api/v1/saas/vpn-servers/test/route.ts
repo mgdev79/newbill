@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { testMikrotikApi } from "@/server/mikrotik/api";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Tes koneksi API MikroTik sebelum/saat form tambah — tanpa menyimpan. */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     host?: string;
     apiPort?: number;
@@ -35,4 +36,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(result);
-}
+});

@@ -3,10 +3,11 @@ import { getRequestTenant } from "@/lib/db";
 import { platformPrisma } from "@/lib/platform-db";
 import { publicVpnAccount } from "@/lib/saas";
 import { randomSecret } from "@/lib/nas-script";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const tenant = await getRequestTenant();
   if (!tenant) {
     return NextResponse.json({ error: "Tenant tidak ditemukan." }, { status: 404 });
@@ -17,9 +18,9 @@ export async function GET() {
     orderBy: { label: "asc" },
   });
   return NextResponse.json({ rows: rows.map(publicVpnAccount) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const tenant = await getRequestTenant();
   if (!tenant) {
     return NextResponse.json({ error: "Tenant tidak ditemukan." }, { status: 404 });
@@ -67,4 +68,4 @@ export async function POST(request: Request) {
     include: { server: true },
   });
   return NextResponse.json({ row: publicVpnAccount(row) }, { status: 201 });
-}
+});

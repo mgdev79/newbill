@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -47,7 +48,7 @@ function paidAtRange(from?: string | null, to?: string | null) {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
@@ -73,4 +74,4 @@ export async function GET(request: Request) {
     take: 500,
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
-}
+});

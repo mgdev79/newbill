@@ -4,10 +4,11 @@ import { parseNasBody } from "@/lib/nas-dto";
 import { mergeNasPublic, nasPortsIndex } from "@/server/nas-radius-view";
 import { onlineUsersByNas } from "@/server/nas-online";
 import { removeNasByRecord, syncNasByRecord } from "@/server/radius-hooks";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET(
+export const GET = withApiErrorHandling(async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -20,9 +21,9 @@ export async function GET(
   return NextResponse.json({
     row: mergeNasPublic(row, index, { userOnline: online.get(row.id) ?? 0 }),
   });
-}
+});
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -85,9 +86,9 @@ export async function PATCH(
     row: mergeNasPublic(row, index, { userOnline: online.get(row.id) ?? 0 }),
     radius,
   });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -110,4 +111,4 @@ export async function DELETE(
     }
   }
   return new NextResponse(null, { status: 204 });
-}
+});

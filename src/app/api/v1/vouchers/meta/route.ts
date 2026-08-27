@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Meta form generate voucher. */
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") === "ppp" ? "ppp" : "hotspot";
@@ -39,4 +40,4 @@ export async function GET(request: Request) {
     ),
     plans: planRows,
   });
-}
+});

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Setara aksi RESTART Core Radius di Mixradius Info Lisensi. */
-export async function POST() {
+export const POST = withApiErrorHandling(async function POST() {
   const prisma = await getDb();
   await prisma.appSetting.upsert({
     where: { key: "core_radius_status" },
@@ -25,4 +26,4 @@ export async function POST() {
     message: "Core Radius ditandai running (restart sinyal dicatat).",
     status: "running",
   });
-}
+});

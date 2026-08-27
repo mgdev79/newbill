@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const prefix = url.searchParams.get("prefix") ?? "";
@@ -18,9 +19,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     rows: rows.map((row) => ({ key: row.key, value: row.value })),
   });
-}
+});
 
-export async function PUT(request: Request) {
+export const PUT = withApiErrorHandling(async function PUT(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as { entries?: Record<string, string>; key?: string; value?: string };
   const entries = body.entries ?? (body.key ? { [body.key]: body.value ?? "" } : null);
@@ -36,4 +37,4 @@ export async function PUT(request: Request) {
     });
   }
   return NextResponse.json({ ok: true });
-}
+});

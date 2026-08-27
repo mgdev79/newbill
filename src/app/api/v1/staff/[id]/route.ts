@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -30,9 +31,9 @@ export async function PATCH(
   return NextResponse.json({
     row: { id: row.id, username: row.username, role: row.role, topup: row.topup, balance: row.balance },
   });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -44,4 +45,4 @@ export async function DELETE(
   }
   await prisma.staffUser.delete({ where: { id } }).catch(() => null);
   return new NextResponse(null, { status: 204 });
-}
+});

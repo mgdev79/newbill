@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function PATCH(
+export const PATCH = withApiErrorHandling(async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -25,9 +26,9 @@ export async function PATCH(
     },
   });
   return NextResponse.json({ row });
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -35,4 +36,4 @@ export async function DELETE(
   const { id } = await context.params;
   await prisma.odp.delete({ where: { id } }).catch(() => null);
   return new NextResponse(null, { status: 204 });
-}
+});

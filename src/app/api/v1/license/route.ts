@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getBillingTenant, maskSecret } from "@/lib/saas";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,7 @@ export const runtime = "nodejs";
  * Setara Mixradius GET /rad-licence/details (+ status layanan).
  * Panel operator membaca lisensi tenant subdomain saat ini.
  */
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const tenant = await getBillingTenant();
   if (!tenant) {
     return NextResponse.json(
@@ -79,4 +80,4 @@ export async function GET() {
       },
     },
   });
-}
+});

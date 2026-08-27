@@ -3,11 +3,12 @@ import { platformPrisma as prisma } from "@/lib/platform-db";
 import { publicVpnAccount } from "@/lib/saas";
 import { randomSecret } from "@/lib/nas-script";
 import { createPppSecret } from "@/server/mikrotik/ppp";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 /** Provision akun VPN tenant: tulis DB + buat /ppp/secret di MikroTik server pool. */
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -123,4 +124,4 @@ export async function POST(
     { row: publicVpnAccount(row), mikrotik },
     { status: 201 },
   );
-}
+});

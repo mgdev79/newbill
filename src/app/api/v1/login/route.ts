@@ -9,6 +9,7 @@ import {
   cookieOptions,
   hasOperatorCookie,
 } from "@/lib/auth-cookies";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ function envCredentialsMatch(username: string, password: string) {
   return username === ENV_USER && password === ENV_PASS && Boolean(ENV_USER) && Boolean(ENV_PASS);
 }
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as { username?: string; password?: string };
   const username = body.username?.trim() ?? "";
@@ -59,9 +60,9 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: "Username atau password salah." }, { status: 401 });
-}
+});
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const jar = await cookies();
   const value = jar.get(OPERATOR_COOKIE)?.value;
@@ -88,10 +89,10 @@ export async function GET() {
     role: staff.role,
     source: "staff",
   });
-}
+});
 
-export async function DELETE() {
+export const DELETE = withApiErrorHandling(async function DELETE() {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(OPERATOR_COOKIE, "", clearCookieOptions());
   return response;
-}
+});

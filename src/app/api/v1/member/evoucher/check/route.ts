@@ -2,10 +2,11 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyGateToken } from "@/lib/member-captcha";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const jar = await cookies();
   if (!verifyGateToken(jar.get("nb_evoucher_gate")?.value)) {
@@ -55,4 +56,4 @@ export async function POST(request: Request) {
             : "ready",
     },
   });
-}
+});

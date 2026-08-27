@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCompanyProfile } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { OPERATOR_COOKIE, OPERATOR_ENV_VALUE } from "@/lib/auth-cookies";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,7 @@ async function staffLabel(prisma: Awaited<ReturnType<typeof getDb>>) {
   return "admin";
 }
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const prisma = await getDb();
   const [company, alerts, staff] = await Promise.all([
     getCompanyProfile(),
@@ -54,4 +55,4 @@ export async function GET() {
       kind: row.kind,
     })),
   });
-}
+});

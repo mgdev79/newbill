@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { publicRadiusEngine, testRadiusEngineConnection } from "@/server/radius-engine";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
-export async function POST(
+export const POST = withApiErrorHandling(async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -54,4 +55,4 @@ export async function POST(
     { ...result, row: publicRadiusEngine(saved) },
     { status: result.ok ? 200 : 400 },
   );
-}
+});

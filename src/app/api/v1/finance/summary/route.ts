@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ function paidWhere(from?: Date, to?: Date) {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const url = new URL(request.url);
   const year = Number(url.searchParams.get("year")) || new Date().getFullYear();
@@ -68,4 +69,4 @@ export async function GET(request: Request) {
     disclaimer:
       "BHP 0.5% dan USO 1.25% adalah estimasi placeholder, bukan rumus resmi Kominfo.",
   });
-}
+});

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { accounting } from "@/server/aaa";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     statusType?: "Start" | "Interim-Update" | "Stop";
     sessionId?: string;
@@ -31,4 +32,4 @@ export async function POST(request: Request) {
     sessionTime: body.sessionTime,
   });
   return NextResponse.json(result);
-}
+});

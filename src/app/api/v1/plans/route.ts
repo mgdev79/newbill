@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,7 @@ function mapRow(row: {
   };
 }
 
-export async function GET(request: Request) {
+export const GET = withApiErrorHandling(async function GET(request: Request) {
   const prisma = await getDb();
   const type = new URL(request.url).searchParams.get("type");
   const rows = await prisma.plan.findMany({
@@ -42,9 +43,9 @@ export async function GET(request: Request) {
     orderBy: { name: "asc" },
   });
   return NextResponse.json({ rows: rows.map(mapRow) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const prisma = await getDb();
   const body = (await request.json()) as {
     name?: string;
@@ -86,4 +87,4 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Nama paket sudah dipakai." }, { status: 409 });
   }
-}
+});

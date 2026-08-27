@@ -4,12 +4,13 @@ import { tenantSubdomain } from "@/lib/tenant-host";
 import { createPlatformGatewayCharge } from "@/server/platform-gateway";
 import { getActivePlatformGatewayProvider } from "@/server/platform-gateway-settings";
 import { activateTenantSignup } from "@/server/tenant-signup";
+import { withApiErrorHandling } from "@/lib/api-handler";
 
 export const runtime = "nodejs";
 
 const SUBDOMAIN_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
 
-export async function GET() {
+export const GET = withApiErrorHandling(async function GET() {
   const [plans, provider] = await Promise.all([
     prisma.saasPlan.findMany({ orderBy: { priceMonth: "asc" } }),
     getActivePlatformGatewayProvider(),
@@ -28,9 +29,9 @@ export async function GET() {
       description: row.description,
     })),
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async function POST(request: Request) {
   const body = (await request.json()) as {
     name?: string;
     email?: string;
@@ -158,4 +159,4 @@ export async function POST(request: Request) {
     },
     { status: 201 },
   );
-}
+});
